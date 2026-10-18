@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, useRoute } from 'vue-router';
 import { defineComponent, ref, watch, h, onMounted } from 'vue';
 import { useAdminStore } from './store';
-import { resolveView, resolveContentView, preloadProjectUis } from './viewRegistry';
+import { resolveView, resolveContentView } from './viewRegistry';
 import Swal from 'sweetalert2';
 import { __ } from "@/admin/translations/engine";
 
@@ -86,9 +86,6 @@ function projectUiView(routeName, options = {}) {
         },
     });
 }
-
-// Preload all project UI configurations at startup
-preloadProjectUis();
 
 /**
  * Route Guard Function

@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('project_themes', function (Blueprint $table) {
             $table->id();
             $table->string('slug')->unique();
+            $table->string('template_slug')->nullable()->index();
+            $table->boolean('is_default')->default(false);
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('version')->default('1.0.0');

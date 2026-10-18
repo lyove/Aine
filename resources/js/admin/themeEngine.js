@@ -190,12 +190,16 @@ export async function updateThemeConfig(projectId, themeConfig) {
 }
 
 /**
- * Get all available themes from the backend.
+ * Get available themes from the backend.
+ * 传 projectId 时只返回该项目的模板家族主题（主题严格归属 project）。
  *
+ * @param {number|null} projectId - Project id for family filtering
  * @returns {Array} List of available themes
  */
-export async function fetchAvailableThemes() {
-    const { data } = await axios.get('themes');
+export async function fetchAvailableThemes(projectId = null) {
+    const { data } = await axios.get('themes', {
+        params: projectId ? { project_id: projectId } : {},
+    });
     return data;
 }
 

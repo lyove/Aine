@@ -30,9 +30,12 @@
                             ]"
                             @click="selectTheme(theme)"
                         >
-                            <!-- Active Badge -->
-                            <div v-if="isActive(theme)" class="absolute top-3 right-3">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            <!-- Active / Default Badge -->
+                            <div class="absolute top-3 right-3 flex items-center gap-1">
+                                <span v-if="theme.is_default" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                    <i class="fas fa-star mr-1"></i> {{ __('Default') }}
+                                </span>
+                                <span v-if="isActive(theme)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                     <i class="fas fa-check mr-1"></i> {{ __('Active') }}
                                 </span>
                             </div>
@@ -167,9 +170,10 @@ export default {
         async loadThemes() {
             this.loading = true;
             try {
-                this.themes = await fetchAvailableThemes();
-                // Find the currently active theme
                 const store = useAdminStore();
+                // 只拉取当前项目的模板家族主题（主题严格归属 project）
+                this.themes = await fetchAvailableThemes(store.currentProject?.id);
+                // Find the currently active theme
                 const currentSlug = store.currentProject?.theme?.slug;
                 this.selectedTheme = this.themes.find(t => t.slug === currentSlug) || null;
 

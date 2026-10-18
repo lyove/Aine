@@ -42,6 +42,11 @@ class ThemeService
     /**
      * Scan the filesystem for theme packages and sync them to the database.
      * Returns the list of themes that were discovered/updated.
+     *
+     * Directory layout (two levels):
+     *   resources/js/admin/themes/{template_slug}/{theme_slug}/
+     *   e.g. themes/cms/default, themes/cms/news
+     * Each theme directory MUST contain a manifest.json with "template".
      */
     public function discoverAndSync(): array
     {
@@ -53,36 +58,43 @@ class ThemeService
             return [];
         }
 
-        foreach (File::directories($basePath) as $dir) {
-            $slug = basename($dir);
+        foreach (File::directories($basePath) as $templateDir) {
+            $templateSlug = basename($templateDir);
 
-            $manifestPath = $dir . '/manifest.json';
-            if (!File::exists($manifestPath)) {
-                Log::info("ThemeService: skipping {$slug} (no manifest.json)");
-                continue;
+            foreach (File::directories($templateDir) as $themeDir) {
+                $themeSlug = basename($themeDir);
+                $slug = $templateSlug . '-' . $themeSlug;
+
+                $manifestPath = $themeDir . '/manifest.json';
+                if (!File::exists($manifestPath)) {
+                    Log::info("ThemeService: skipping {$templateSlug}/{$themeSlug} (no manifest.json)");
+                    continue;
+                }
+
+                $manifest = json_decode(File::get($manifestPath), true);
+                if (!$manifest || !isset($manifest['name'])) {
+                    Log::warning("ThemeService: invalid manifest.json in {$templateSlug}/{$themeSlug}");
+                    continue;
+                }
+
+                $designTokens = $manifest['design_tokens'] ?? null;
+                $viewOverrides = $manifest['view_overrides'] ?? null;
+
+                $discovered[$slug] = [
+                    'slug' => $slug,
+                    'template_slug' => $manifest['template'] ?? $templateSlug,
+                    'is_default' => !empty($manifest['default']),
+                    'name' => $manifest['name'],
+                    'description' => $manifest['description'] ?? null,
+                    'version' => $manifest['version'] ?? '1.0.0',
+                    'author' => $manifest['author'] ?? null,
+                    'icon' => $manifest['icon'] ?? null,
+                    'preview_image' => $manifest['preview_image'] ?? null,
+                    'asset_path' => self::THEMES_DIR . '/' . $templateSlug . '/' . $themeSlug,
+                    'design_tokens' => $designTokens,
+                    'view_overrides' => $viewOverrides,
+                ];
             }
-
-            $manifest = json_decode(File::get($manifestPath), true);
-            if (!$manifest || !isset($manifest['name'])) {
-                Log::warning("ThemeService: invalid manifest.json in {$slug}");
-                continue;
-            }
-
-            $designTokens = $manifest['design_tokens'] ?? null;
-            $viewOverrides = $manifest['view_overrides'] ?? null;
-
-            $discovered[$slug] = [
-                'slug' => $slug,
-                'name' => $manifest['name'],
-                'description' => $manifest['description'] ?? null,
-                'version' => $manifest['version'] ?? '1.0.0',
-                'author' => $manifest['author'] ?? null,
-                'icon' => $manifest['icon'] ?? null,
-                'preview_image' => $manifest['preview_image'] ?? null,
-                'asset_path' => self::THEMES_DIR . '/' . $slug,
-                'design_tokens' => $designTokens,
-                'view_overrides' => $viewOverrides,
-            ];
         }
 
         // Sync to database: create or update
@@ -161,10 +173,16 @@ class ThemeService
     /**
      * Get all available themes for the admin UI (theme selection list).
      */
-    public function getAvailableThemes(): array
+    public function getAvailableThemes(?Project $project = null): array
     {
-        return ProjectTheme::active()
-            ->get()
+        $query = ProjectTheme::active();
+
+        // 主题严格归属模板（项目家族）：传入项目时只返回该项目家族的主题
+        if ($project) {
+            $query->where('template_slug', $project->slug);
+        }
+
+        return $query->get()
             ->map(fn (ProjectTheme $theme) => [
                 'id' => $theme->id,
                 'slug' => $theme->slug,
@@ -174,6 +192,8 @@ class ThemeService
                 'author' => $theme->author,
                 'icon' => $theme->icon,
                 'preview_image' => $theme->preview_image,
+                'template_slug' => $theme->template_slug,
+                'is_default' => (bool) $theme->is_default,
                 'design_tokens' => $theme->design_tokens,
                 'projects_count' => $theme->projects()->count(),
             ])
@@ -182,12 +202,18 @@ class ThemeService
 
     /**
      * Apply a theme to a project.
+     * 归属校验：主题必须属于该项目的模板家族，否则拒绝（防止勾选其他项目主题导致视图错乱）。
      */
     public function applyTheme(Project $project, int $themeId): bool
     {
         $theme = ProjectTheme::findOrFail($themeId);
 
         if (!$theme->is_active) {
+            return false;
+        }
+
+        // 归属校验：主题的 template_slug 必须等于项目的 slug
+        if ($theme->template_slug !== $project->slug) {
             return false;
         }
 

@@ -15,16 +15,22 @@ class ThemesController extends Controller
     ) {}
 
     /**
-     * List all available themes.
+     * List available themes.
      * Auto-syncs from filesystem if no themes exist.
+     * 支持 ?project_id= 过滤：只返回该项目的模板家族主题（主题严格归属 project）。
      */
-    public function index()
+    public function index(Request $request)
     {
-        $themes = $this->themeService->getAvailableThemes();
+        $project = null;
+        if ($request->filled('project_id')) {
+            $project = Project::find($request->integer('project_id'));
+        }
+
+        $themes = $this->themeService->getAvailableThemes($project);
 
         if (empty($themes)) {
             $this->themeService->discoverAndSync();
-            $themes = $this->themeService->getAvailableThemes();
+            $themes = $this->themeService->getAvailableThemes($project);
         }
 
         return response()->json($themes);
@@ -73,7 +79,7 @@ class ThemesController extends Controller
         $success = $this->themeService->applyTheme($project, (int) $request->theme_id);
 
         if (!$success) {
-            return response()->json(['message' => 'Theme is not active.'], 422);
+            return response()->json(['message' => 'Theme is not active or not applicable to this project.'], 422);
         }
 
         // Reload the project with the theme relationship

@@ -1,8 +1,9 @@
 /**
  * View Registry - Maps route names to view components with theme support.
  *
- * Theme packages: resources/js/admin/themes/{slug}/
- * Resolution priority: runtime (manifest.json) > legacy (config.js) > default views
+ * Theme packages: resources/js/admin/themes/{template}/{theme}/
+ * Resolution priority: runtime (manifest.json) > default views
+ * (legacy config.js 注册方式已废弃并清理)
  */
 
 // Default fallback views
@@ -27,34 +28,25 @@ const defaultViews = {
     'projects.settings.audit-logs':    () => import('./views/Project.Settings/AuditLogs.vue'),
 };
 
-// Theme registries
-const legacyRegistry = {};   // From config.js (legacy)
-const runtimeRegistry = {};  // From manifest.json via themeEngine
+// Theme registry: from manifest.json via themeEngine (runtime)
+const runtimeRegistry = {};
 
 // Pre-resolved theme components via Vite glob
 const themeModuleMap = import.meta.glob('./themes/**/*.vue');
 
 /**
- * Register a legacy theme (from config.js).
- */
-export function registerLegacyTheme(slug, config) {
-    legacyRegistry[slug] = {
-        name: config.name || slug,
-        description: config.description || '',
-        views: config.views || {},
-    };
-}
-
-/**
  * Register a theme at runtime (from manifest.json via themeEngine).
- * Takes priority over legacy config.js registrations.
  */
 export function registerTheme(slug, themeData) {
     const views = {};
 
+    // 路径以 asset_path 为准（主题目录二级化后为 themes/{template}/{theme}），
+    // 不能再用 slug 拼接（slug 是组合式 cms-default，目录里没有这个路径）
+    const assetPath = themeData.asset_path || `themes/${slug}`;
+
     if (themeData.view_overrides) {
         for (const [routeName, componentPath] of Object.entries(themeData.view_overrides)) {
-            const globKey = `./themes/${slug}/${componentPath.replace(/^\.\//, '')}`;
+            const globKey = `./${assetPath}/${componentPath.replace(/^\.\//, '')}`;
             if (themeModuleMap[globKey]) {
                 views[routeName] = themeModuleMap[globKey];
             } else {
@@ -66,7 +58,7 @@ export function registerTheme(slug, themeData) {
     runtimeRegistry[slug] = {
         name: themeData.name || slug,
         version: themeData.version || '1.0.0',
-        assetPath: themeData.asset_path || `themes/${slug}`,
+        assetPath,
         views,
         designTokens: themeData.design_tokens || {},
     };
@@ -77,19 +69,16 @@ export function unregisterTheme(slug) {
 }
 
 export function isThemeRegistered(slug) {
-    return slug in runtimeRegistry || slug in legacyRegistry;
+    return slug in runtimeRegistry;
 }
 
 /**
  * Get the view loader for a route.
- * Priority: runtime > legacy > default
+ * Priority: runtime > default
  */
 export function resolveView(routeName, uiSlug = null) {
     if (uiSlug && runtimeRegistry[uiSlug]?.views[routeName]) {
         return runtimeRegistry[uiSlug].views[routeName];
-    }
-    if (uiSlug && legacyRegistry[uiSlug]?.views[routeName]) {
-        return legacyRegistry[uiSlug].views[routeName];
     }
     return defaultViews[routeName] || null;
 }
@@ -105,14 +94,8 @@ export function resolveContentView(routeName, uiSlug = null, collectionSlug = nu
         if (uiSlug && runtimeRegistry[uiSlug]?.views[collectionKey]) {
             return runtimeRegistry[uiSlug].views[collectionKey];
         }
-        if (uiSlug && legacyRegistry[uiSlug]?.views[collectionKey]) {
-            return legacyRegistry[uiSlug].views[collectionKey];
-        }
         if (uiSlug && runtimeRegistry[uiSlug]?.views[routeName]) {
             return runtimeRegistry[uiSlug].views[routeName];
-        }
-        if (uiSlug && legacyRegistry[uiSlug]?.views[routeName]) {
-            return legacyRegistry[uiSlug].views[routeName];
         }
     }
     return resolveView(routeName, uiSlug);
@@ -128,9 +111,6 @@ export function getThemeDesignTokens(uiSlug) {
 export function getAllThemes() {
     const themes = {};
 
-    for (const [slug, config] of Object.entries(legacyRegistry)) {
-        themes[slug] = { slug, name: config.name, description: config.description, source: 'legacy' };
-    }
     for (const [slug, config] of Object.entries(runtimeRegistry)) {
         themes[slug] = { slug, name: config.name, version: config.version, source: 'runtime', designTokens: config.designTokens };
     }
@@ -139,32 +119,9 @@ export function getAllThemes() {
 }
 
 export function getTheme(slug) {
-    return runtimeRegistry[slug] || legacyRegistry[slug] || null;
-}
-
-/**
- * Preload legacy theme configs (config.js) via Vite glob import.
- */
-export async function preloadProjectUis() {
-    const uiModules = import.meta.glob('./themes/*/config.js', { eager: true });
-
-    for (const [path, module] of Object.entries(uiModules)) {
-        const match = path.match(/\.\/themes\/(.+)\/config\.js/);
-        if (match) {
-            registerLegacyTheme(match[1], module.default || module);
-        }
-    }
+    return runtimeRegistry[slug] || null;
 }
 
 export function getAvailableProjectUis() {
-    return [...new Set([...Object.keys(legacyRegistry), ...Object.keys(runtimeRegistry)])];
-}
-
-// Deprecated aliases
-export function registerProjectUi(slug, config) { registerLegacyTheme(slug, config); }
-export function getProjectUi(slug) { return getTheme(slug); }
-export function getProjectUis() {
-    const result = {};
-    for (const slug of getAvailableProjectUis()) result[slug] = getTheme(slug);
-    return result;
+    return [...new Set(Object.keys(runtimeRegistry))];
 }
