@@ -204,7 +204,7 @@
 									<tr
 										v-if="groupOptions.collapsable ? headerRow.isExpanded : true"
 										:key="row.originalIndex"
-										:class="[getRowStyleClass(row), 'hover:bg-gray-50']"
+										:class="[getRowStyleClass(row), 'group hover:bg-gray-50']"
 										@mouseenter="onMouseenter(row, index)"
 										@mouseleave="onMouseleave(row, index)"
 										@dblclick="onRowDoubleClicked(row, index, $event)"
@@ -1061,6 +1061,8 @@ export default {
 				classes["sticky"] = true;
 				classes["right-0"] = true;
 				classes["bg-white"] = true;
+				// 跟随行 hover 高亮（tr 有 group 类），否则固定列白底会盖住行高亮
+				classes["group-hover:bg-gray-50"] = true;
 				classes["shadow-[-2px_0_5px_rgba(0,0,0,0.1)]"] = true;
 				classes["z-10"] = true;
 			}
