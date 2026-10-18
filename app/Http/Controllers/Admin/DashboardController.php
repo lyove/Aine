@@ -86,7 +86,7 @@ class DashboardController extends Controller
                 // Source string; the admin UI renders it via __() with the
                 // count placeholder so it follows the active UI language.
                 'message' => $draftContent === 1 ? '{count} draft content' : '{count} draft contents',
-                'action' => $draftContent2 ? "/project/{$draftContent2->project_id}/content/{$draftContent2->collection_id}?filter=draft" : '/projects',
+                'action' => $draftContent2 ? "/project/{$draftContent2->project_id}/collections/{$draftContent2->collection_id}/content?filter=draft" : '/projects',
             ];
         }
 
@@ -104,7 +104,7 @@ class DashboardController extends Controller
                 'type' => 'trashed',
                 'count' => $trashedContent,
                 'message' => $trashedContent === 1 ? '{count} item in trash' : '{count} items in trash',
-                'action' => $trashedContent2 ? "/project/{$trashedContent2->project_id}/content/{$trashedContent2->collection_id}?filter=trashed" : '/projects',
+                'action' => $trashedContent2 ? "/project/{$trashedContent2->project_id}/collections/{$trashedContent2->collection_id}/content?filter=trashed" : '/projects',
             ];
         }
 
@@ -123,7 +123,7 @@ class DashboardController extends Controller
                 'type' => 'comments',
                 'count' => $pendingComments,
                 'message' => $pendingComments === 1 ? '{count} pending comment' : '{count} pending comments',
-                'action' => $pendingComment ? "/project/{$pendingComment->project_id}/content/{$pendingComment->collection_id}?filter=pending" : '/projects',
+                'action' => $pendingComment ? "/project/{$pendingComment->project_id}/collections/{$pendingComment->collection_id}/content?filter=pending" : '/projects',
             ];
         }
 

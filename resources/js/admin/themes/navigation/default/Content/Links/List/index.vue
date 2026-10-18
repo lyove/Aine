@@ -621,7 +621,14 @@ export default {
       linkFilter.value === "dead" ? rows.value.filter((r) => r.link_status === "dead") : rows.value
     );
 
-    onMounted(() => reload(1));
+    onMounted(() => {
+      // 支持从 URL ?filter=draft|published|trashed|all 初始化发布状态 tab（如 Dashboard Review 跳转）
+      const qf = route.query.filter;
+      if (qf && ["all", "published", "draft", "trashed"].includes(qf)) {
+        getItems.value = qf;
+      }
+      reload(1);
+    });
 
     return {
       project, collection, rows, loading,
