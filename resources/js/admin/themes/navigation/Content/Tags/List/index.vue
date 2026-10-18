@@ -6,7 +6,8 @@
       <collection-sidebar :project="project" class="w-3/12 shrink-0 overflow-x-hidden bg-white" />
 
       <div class="min-w-0 flex-1 overflow-auto p-5">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <!-- 标题栏 + 操作 -->
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-xl font-bold text-gray-800">{{ __(collection.name || 'Tags') }}</h2>
             <p class="mt-0.5 text-sm text-gray-400">{{ totalCount }} {{ __('tags') }}</p>
@@ -18,14 +19,13 @@
                 type="text"
                 class="w-56 rounded-lg border border-gray-300 py-1.5 pl-8 pr-3 text-sm focus:border-indigo-400 focus:outline-none"
                 :placeholder="__('Search tags...')"
-                @keyup.enter="reload(1)"
               />
               <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
             </div>
             <button
               type="button"
               class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-              @click="reload(currentPage)"
+              @click="reload()"
             ><i class="fa fa-sync-alt mr-1"></i>{{ __('Refresh') }}</button>
             <router-link
               v-if="canEdit"
@@ -35,76 +35,61 @@
           </div>
         </div>
 
-        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div v-if="loading" class="space-y-2 p-5">
-            <div v-for="n in 5" :key="n" class="h-12 animate-pulse rounded-lg bg-gray-100"></div>
+        <!-- 标签胶囊墙 -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div v-if="loading" class="flex flex-wrap gap-3">
+            <div v-for="n in 9" :key="n" class="h-10 w-28 animate-pulse rounded-full bg-gray-100"></div>
           </div>
-          <div v-else-if="!rows.length" class="p-14 text-center text-sm text-gray-400">
+
+          <div v-else-if="!rows.length" class="py-16 text-center text-sm text-gray-400">
             <i class="fa fa-tags mb-3 block text-3xl text-gray-300"></i>
             {{ __('No tags yet.') }}
           </div>
-          <table v-else class="w-full text-left text-sm">
-            <thead class="border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-              <tr>
-                <th class="px-4 py-3 font-medium">{{ __('Name') }}</th>
-                <th class="px-4 py-3 font-medium">{{ __('Slug') }}</th>
-                <th class="px-4 py-3 font-medium">{{ __('Description') }}</th>
-                <th class="px-4 py-3 text-right font-medium">{{ __('Actions') }}</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-              <tr v-for="row in rows" :key="row.id" class="hover:bg-indigo-50/40">
-                <td class="px-4 py-3">
-                  <span class="inline-flex items-center gap-2 font-medium text-gray-800">
-                    <span class="rounded bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-600">#{{ row.name }}</span>
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-gray-500">{{ row.slug || '—' }}</td>
-                <td class="max-w-xs truncate px-4 py-3 text-gray-500">{{ row.description || '—' }}</td>
-                <td class="px-4 py-3">
-                  <div class="flex items-center justify-end gap-1">
-                    <a
-                      :href="`/navigation/tag/${encodeURIComponent(row.name)}`"
-                      target="_blank"
-                      rel="noopener"
-                      class="rounded-lg bg-gray-50 p-2 text-gray-500 hover:bg-gray-100"
-                      :title="__('Preview on frontend')"
-                    ><i class="fa fa-external-link-alt"></i></a>
-                    <router-link
-                      v-if="canEdit"
-                      :to="{ name: 'projects.collections.content.edit', params: { project_id: pid, col_id: cid, content_id: row.id } }"
-                      class="rounded-lg bg-gray-50 p-2 text-indigo-500 hover:bg-indigo-50"
-                      :title="__('Edit')"
-                    ><i class="fa fa-pencil-alt"></i></router-link>
-                    <button
-                      v-if="canManage"
-                      type="button"
-                      class="rounded-lg bg-gray-50 p-2 text-orange-500 hover:bg-orange-50"
-                      :title="__('Move to trash')"
-                      @click="moveToTrash(row)"
-                    ><i class="fa fa-trash-restore"></i></button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
 
-          <div v-if="!loading && rows.length" class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-            <span class="text-xs text-gray-400">{{ (currentPage - 1) * each + 1 }}–{{ Math.min(currentPage * each, totalCount) }} / {{ totalCount }}</span>
-            <div class="flex items-center gap-1">
-              <button
-                type="button"
-                class="rounded-lg border border-gray-200 px-2.5 py-1 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40"
-                :disabled="currentPage <= 1"
-                @click="reload(currentPage - 1)"
-              ><i class="fa fa-chevron-left"></i></button>
-              <span class="px-2 text-sm text-gray-600">{{ currentPage }} / {{ totalPages }}</span>
-              <button
-                type="button"
-                class="rounded-lg border border-gray-200 px-2.5 py-1 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40"
-                :disabled="currentPage >= totalPages"
-                @click="reload(currentPage + 1)"
-              ><i class="fa fa-chevron-right"></i></button>
+          <div v-else-if="!filteredTags.length" class="py-16 text-center">
+            <p class="text-sm text-gray-400">
+              {{ __('No tags match') }} "#{{ search }}"
+            </p>
+            <router-link
+              v-if="canEdit"
+              :to="{ name: 'projects.collections.content.new', params: { project_id: pid, col_id: cid } }"
+              class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-600"
+            >
+              <i class="fa fa-plus mr-1"></i>{{ __('Create tag') }} "#{{ search }}"
+            </router-link>
+          </div>
+
+          <div v-else class="flex flex-wrap gap-3">
+            <div
+              v-for="tag in filteredTags"
+              :key="tag.id"
+              class="flex cursor-pointer items-center gap-2 rounded-full py-1.5 pl-4 pr-2 transition hover:shadow-md"
+              :style="pillStyle(tag)"
+              @click="editTag(tag)"
+            >
+              <span class="text-sm font-bold" :style="{ color: pillColor(tag) }">#{{ tag.name }}</span>
+              <span
+                class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                :style="{ background: pillColor(tag) + '26', color: pillColor(tag) }"
+              >{{ tag.usage }} {{ __('links') }}</span>
+
+              <!-- 操作按钮：常显，不依赖 hover -->
+              <span class="ml-1 flex items-center gap-0.5">
+                <router-link
+                  v-if="canEdit"
+                  :to="{ name: 'projects.collections.content.edit', params: { project_id: pid, col_id: cid, content_id: tag.id } }"
+                  class="rounded-full p-1 text-indigo-400 hover:bg-indigo-100 hover:text-indigo-600"
+                  :title="__('Edit')"
+                  @click.stop
+                ><i class="fa fa-pencil-alt text-[10px]"></i></router-link>
+                <button
+                  v-if="canManage"
+                  type="button"
+                  class="rounded-full p-1 text-orange-400 hover:bg-orange-100 hover:text-orange-600"
+                  :title="__('Delete')"
+                  @click.stop="moveToTrash(tag)"
+                ><i class="fa fa-trash-alt text-[10px]"></i></button>
+              </span>
             </div>
           </div>
         </div>
@@ -115,10 +100,12 @@
 
 <script>
 import { ref, computed, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import { useAdminStore } from "@/admin/store";
 import { __ } from "@/admin/translations/engine";
+import Swal from "sweetalert2";
+import { useToast } from "vue-toastification";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
@@ -126,7 +113,9 @@ export default {
   name: "NavigationTagsList",
   components: { ProjectHeader, CollectionSidebar },
   setup() {
+    const toast = useToast();
     const route = useRoute();
+    const router = useRouter();
     const store = useAdminStore();
     const pid = route.params.project_id;
     const cid = route.params.col_id;
@@ -136,9 +125,10 @@ export default {
     const rows = ref([]);
     const loading = ref(true);
     const search = ref("");
-    const each = ref(20);
-    const currentPage = ref(1);
     const totalCount = ref(0);
+
+    // 预设胶囊配色（id 取模轮换）
+    const PILL_COLORS = ["#4f46e5", "#dc2626", "#16a34a", "#d97706", "#0891b2", "#7c3aed", "#db2777", "#65a30d"];
 
     const canEdit = computed(() => {
       const p = store.currentProject || project.value;
@@ -148,37 +138,41 @@ export default {
       const p = store.currentProject || project.value;
       return p && !(p.is_readonly || !p.status) && ["owner", "admin"].includes(p.my_role);
     });
-    const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / each.value)));
+
+    const filteredTags = computed(() => {
+      const q = search.value.trim().toLowerCase();
+      if (!q) return rows.value;
+      return rows.value.filter((t) => (t.name || "").toLowerCase().includes(q));
+    });
+
+    function pillColor(tag) {
+      return PILL_COLORS[tag.id % PILL_COLORS.length];
+    }
+    function pillStyle(tag) {
+      const c = pillColor(tag);
+      return { background: c + "0f" };
+    }
 
     function metaValue(row, name) {
       const item = (row.meta || []).find((m) => m.field_name === name);
       return item ? item.value : null;
     }
 
-    async function reload(page) {
-      if (typeof page === "number") currentPage.value = page;
+    async function reload() {
       loading.value = true;
       try {
         const { data } = await axios.get(`projects/${pid}/collections/${cid}/entries`, {
-          params: {
-            page: currentPage.value,
-            search: search.value,
-            orderBy: "weight",
-            cr: "ASC",
-            sbm: 1,
-            each: each.value,
-            getItems: "all",
-          },
+          params: { each: 200, getItems: "all" },
         });
         project.value = data.project;
         collection.value = data.collection || { name: "Tags" };
         totalCount.value = data.totalCount || 0;
-        rows.value = (data.content.data || []).map((row) => ({
+        const tags = (data.content.data || []).map((row) => ({
           id: row.id,
-          name: metaValue(row, "tag"),
-          slug: metaValue(row, "slug"),
-          description: metaValue(row, "description"),
+          name: metaValue(row, "tag") || `#${row.id}`,
         }));
+        rows.value = tags;
+        await loadUsage(tags);
       } catch (e) {
         console.error("load tags failed:", e);
       } finally {
@@ -186,30 +180,61 @@ export default {
       }
     }
 
-    async function moveToTrash(row) {
+    // 统计每个 tag 被多少 links 引用（links 的 tags 字段是逗号分隔的 id）
+    async function loadUsage(tags) {
+      const usage = {};
+      tags.forEach((t) => { usage[t.id] = 0; });
       try {
-        const result = await window.$swal.fire({
-          title: __("Move to trash?"),
-          text: `"${row.name}"`,
+        const linksCol = (project.value.collections || []).find((c) => c.slug === "links");
+        if (!linksCol) return;
+        const { data } = await axios.get(`projects/${pid}/collections/${linksCol.id}/entries`, {
+          params: { each: 200, getItems: "all" },
+        });
+        (data.content.data || []).forEach((row) => {
+          const v = metaValue(row, "tags");
+          if (!v) return;
+          String(v).split(",").filter(Boolean).forEach((id) => {
+            if (usage[id] !== undefined) usage[id]++;
+          });
+        });
+      } catch (e) {
+        // 统计失败不阻塞页面
+      }
+      rows.value = rows.value.map((t) => ({ ...t, usage: usage[t.id] || 0 }));
+    }
+
+    function editTag(tag) {
+      router.push({
+        name: "projects.collections.content.edit",
+        params: { project_id: pid, col_id: cid, content_id: tag.id },
+      });
+    }
+
+    async function moveToTrash(tag) {
+      try {
+        const result = await Swal.fire({
+          title: __("Delete tag?"),
+          text: `"${tag.name}" ${__("will be removed from all links.")}`,
           icon: "warning",
           showCancelButton: true,
-          confirmButtonText: __("Move"),
+          confirmButtonText: __("Delete"),
           cancelButtonText: __("Cancel"),
         });
         if (!result.isConfirmed) return;
-        await axios.delete(`projects/${pid}/collections/${cid}/${row.id}/move-to-trash`);
-        window.$toast.success(__("Moved to trash."));
+        await axios.delete(`projects/${pid}/collections/${cid}/${tag.id}/move-to-trash`);
+        toast.success(__("Tag deleted and removed from links."));
         reload();
       } catch (e) {
-        window.$toast.error(__("Failed to move to trash."));
+        toast.error(__("Failed to delete tag."));
       }
     }
 
-    onMounted(() => reload(1));
+    onMounted(() => reload());
 
     return {
-      project, collection, rows, loading, search, each, currentPage, totalCount,
-      totalPages, canEdit, canManage, reload, moveToTrash,
+      project, collection, rows, loading, search, totalCount,
+      filteredTags, canEdit, canManage,
+      pillColor, pillStyle, editTag, moveToTrash, reload,
     };
   },
 };

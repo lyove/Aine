@@ -205,6 +205,8 @@ import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import { useAdminStore } from "@/admin/store";
 import { __ } from "@/admin/translations/engine";
+import Swal from "sweetalert2";
+import { useToast } from "vue-toastification";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
@@ -212,6 +214,7 @@ export default {
   name: "NavigationLinksNew",
   components: { ProjectHeader, CollectionSidebar },
   setup() {
+    const toast = useToast();
     const route = useRoute();
     const router = useRouter();
     const store = useAdminStore();
@@ -308,11 +311,11 @@ export default {
 
     async function save(published) {
       if (!form.title.trim()) {
-        window.$toast.error(__("Name is required."));
+        toast.error(__("Name is required."));
         return;
       }
       if (!form.url.trim()) {
-        window.$toast.error(__("URL is required."));
+        toast.error(__("URL is required."));
         return;
       }
       saving.value = true;
@@ -324,14 +327,14 @@ export default {
           published,
           data: buildData(),
         });
-        window.$toast.success(__("Link created!"));
+        toast.success(__("Link created!"));
         router.push({
           name: "projects.collections.content.list",
           params: { project_id: pid, col_id: cid },
         });
       } catch (e) {
         const msg = e.response && e.response.data && e.response.data.message;
-        window.$toast.error(msg || __("Failed to create link."));
+        toast.error(msg || __("Failed to create link."));
       } finally {
         saving.value = false;
       }

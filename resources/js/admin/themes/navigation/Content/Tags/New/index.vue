@@ -62,6 +62,8 @@ import { ref, reactive, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import { __ } from "@/admin/translations/engine";
+import Swal from "sweetalert2";
+import { useToast } from "vue-toastification";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
@@ -69,6 +71,7 @@ export default {
   name: "NavigationTagsNew",
   components: { ProjectHeader, CollectionSidebar },
   setup() {
+    const toast = useToast();
     const route = useRoute();
     const router = useRouter();
     const pid = route.params.project_id;
@@ -84,7 +87,7 @@ export default {
 
     async function save(published) {
       if (!form.tag.trim()) {
-        window.$toast.error(__("Tag is required."));
+        toast.error(__("Tag is required."));
         return;
       }
       saving.value = true;
@@ -98,14 +101,14 @@ export default {
             tag: form.tag,
           },
         });
-        window.$toast.success(__("Tag created!"));
+        toast.success(__("Tag created!"));
         router.push({
           name: "projects.collections.content.list",
           params: { project_id: pid, col_id: cid },
         });
       } catch (e) {
         const msg = e.response && e.response.data && e.response.data.message;
-        window.$toast.error(msg || __("Failed to create tag."));
+        toast.error(msg || __("Failed to create tag."));
       } finally {
         saving.value = false;
       }

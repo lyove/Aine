@@ -72,13 +72,6 @@
                 <td class="max-w-xs truncate px-4 py-3 text-gray-500">{{ row.description || '—' }}</td>
                 <td class="px-4 py-3">
                   <div class="flex items-center justify-end gap-1">
-                    <a
-                      :href="`/navigation/category/${row.slug}`"
-                      target="_blank"
-                      rel="noopener"
-                      class="rounded-lg bg-gray-50 p-2 text-gray-500 hover:bg-gray-100"
-                      :title="__('Preview on frontend')"
-                    ><i class="fa fa-external-link-alt"></i></a>
                     <router-link
                       v-if="canEdit"
                       :to="{ name: 'projects.collections.content.edit', params: { project_id: pid, col_id: cid, content_id: row.id } }"
@@ -128,6 +121,8 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 import { useAdminStore } from "@/admin/store";
 import { __ } from "@/admin/translations/engine";
+import Swal from "sweetalert2";
+import { useToast } from "vue-toastification";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
@@ -135,6 +130,7 @@ export default {
   name: "NavigationCategoriesList",
   components: { ProjectHeader, CollectionSidebar },
   setup() {
+    const toast = useToast();
     const route = useRoute();
     const store = useAdminStore();
     const pid = route.params.project_id;
@@ -198,7 +194,7 @@ export default {
 
     async function moveToTrash(row) {
       try {
-        const result = await window.$swal.fire({
+        const result = await Swal.fire({
           title: __("Move to trash?"),
           text: `"${row.name}"`,
           icon: "warning",
@@ -208,10 +204,10 @@ export default {
         });
         if (!result.isConfirmed) return;
         await axios.delete(`projects/${pid}/collections/${cid}/${row.id}/move-to-trash`);
-        window.$toast.success(__("Moved to trash."));
+        toast.success(__("Moved to trash."));
         reload();
       } catch (e) {
-        window.$toast.error(__("Failed to move to trash."));
+        toast.error(__("Failed to move to trash."));
       }
     }
 

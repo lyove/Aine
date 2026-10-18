@@ -207,6 +207,72 @@
               </label>
             </div>
           </div>
+
+          <!-- 链接检测 -->
+          <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
+              <i class="fa fa-heartbeat text-sky-500"></i>{{ __('Link Check') }}
+            </h3>
+
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                class="rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 disabled:opacity-50"
+                :disabled="checking || !form.url"
+                @click="checkLink"
+              >
+                <i class="fa fa-heartbeat mr-1"></i>{{ checking ? __('Checking...') : __('Check this link') }}
+              </button>
+              <span v-if="checking" class="text-sm text-sky-500">
+                <i class="fa fa-spinner fa-spin mr-1"></i>{{ __('Checking') }} {{ form.url }}...
+              </span>
+              <span v-else-if="!form.url" class="text-xs text-gray-400">{{ __('Enter a URL first to check availability.') }}</span>
+            </div>
+
+            <div v-if="checkResult" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div class="rounded-lg border p-3">
+                <div class="text-xs text-gray-400">{{ __('Availability') }}</div>
+                <div class="mt-1 flex items-center gap-2">
+                  <span
+                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-semibold"
+                    :class="checkResult.link_status === 'ok'
+                      ? 'bg-emerald-100 text-emerald-600'
+                      : checkResult.link_status === 'dead'
+                        ? 'bg-red-100 text-red-600'
+                        : 'bg-gray-100 text-gray-400'"
+                  >
+                    <i
+                      :class="checkResult.link_status === 'ok'
+                        ? 'fa fa-check-circle'
+                        : checkResult.link_status === 'dead'
+                          ? 'fa fa-exclamation-circle'
+                          : 'fa fa-minus-circle'"
+                    ></i>
+                    {{ checkResult.link_status === 'ok' ? __('OK') : checkResult.link_status === 'dead' ? __('Dead') : __('Unknown') }}
+                  </span>
+                </div>
+              </div>
+              <div class="rounded-lg border p-3">
+                <div class="text-xs text-gray-400">{{ __('HTTP Code') }}</div>
+                <div class="mt-1 text-sm font-semibold text-gray-800">
+                  {{ checkResult.http_code ? 'HTTP ' + checkResult.http_code : '—' }}
+                </div>
+              </div>
+              <div class="rounded-lg border p-3">
+                <div class="text-xs text-gray-400">{{ __('Last Checked') }}</div>
+                <div class="mt-1 text-sm font-semibold text-gray-800">
+                  {{ checkResult.last_checked_at || '—' }}
+                </div>
+              </div>
+              <div v-if="checkResult.message && checkResult.link_status !== 'ok'" class="rounded-lg border border-red-100 bg-red-50 p-3 sm:col-span-3">
+                <div class="text-xs text-gray-400">{{ __('Reason') }}</div>
+                <div class="mt-1 text-sm font-medium text-red-600">{{ checkResult.message }}</div>
+              </div>
+            </div>
+            <p v-else-if="!checking" class="mt-3 text-xs text-gray-400">
+              {{ __('Detection only marks the result — dead links stay visible and you handle them manually.') }}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -219,6 +285,8 @@ import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import { useAdminStore } from "@/admin/store";
 import { __ } from "@/admin/translations/engine";
+import Swal from "sweetalert2";
+import { useToast } from "vue-toastification";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
@@ -226,6 +294,7 @@ export default {
   name: "NavigationLinksEdit",
   components: { ProjectHeader, CollectionSidebar },
   setup() {
+    const toast = useToast();
     const route = useRoute();
     const router = useRouter();
     const store = useAdminStore();
@@ -242,6 +311,8 @@ export default {
     const faviconPreview = ref("");
     const saving = ref(false);
     const loaded = ref(false);
+    const checking = ref(false);
+    const checkResult = ref(null);
 
     const form = reactive({
       title: "",
@@ -322,8 +393,43 @@ export default {
       const behavior = metaValue("click_behavior");
       form.click_behavior = behavior || "detail";
 
+      const status = metaValue("link_status");
+      const code = metaValue("http_code");
+      const checkedAt = metaValue("last_checked_at");
+      if (status) {
+        checkResult.value = {
+          link_status: status,
+          http_code: code || null,
+          last_checked_at: checkedAt || null,
+          message: null,
+        };
+      }
+
       loaded.value = true;
       previewFavicon();
+    }
+
+    async function checkLink() {
+      if (!form.url || checking.value) return;
+      checking.value = true;
+      try {
+        const { data } = await axios.post(`projects/${pid}/collections/${cid}/${contentId}/check-link`);
+        checkResult.value = {
+          link_status: data.link_status,
+          http_code: data.http_code,
+          last_checked_at: data.last_checked_at,
+          message: data.message,
+        };
+        if (data.link_status === "ok") {
+          toast.success(__("Link is reachable (") + (data.http_code || "OK") + ").");
+        } else {
+          toast.error(__("Link is dead — ") + (data.message || __("check failed")) + ".");
+        }
+      } catch (e) {
+        toast.error(__("Check failed."));
+      } finally {
+        checking.value = false;
+      }
     }
 
     async function previewFavicon() {
@@ -360,11 +466,11 @@ export default {
 
     async function save(published) {
       if (!form.title.trim()) {
-        window.$toast.error(__("Name is required."));
+        toast.error(__("Name is required."));
         return;
       }
       if (!form.url.trim()) {
-        window.$toast.error(__("URL is required."));
+        toast.error(__("URL is required."));
         return;
       }
       saving.value = true;
@@ -376,14 +482,14 @@ export default {
           published,
           data: buildData(),
         });
-        window.$toast.success(__("Link saved!"));
+        toast.success(__("Link saved!"));
         router.push({
           name: "projects.collections.content.list",
           params: { project_id: pid, col_id: cid },
         });
       } catch (e) {
         const msg = e.response && e.response.data && e.response.data.message;
-        window.$toast.error(msg || __("Failed to save link."));
+        toast.error(msg || __("Failed to save link."));
       } finally {
         saving.value = false;
       }
@@ -391,7 +497,7 @@ export default {
 
     async function moveToTrash() {
       try {
-        const result = await window.$swal.fire({
+        const result = await Swal.fire({
           title: __("Move to trash?"),
           text: `"${form.title}"`,
           icon: "warning",
@@ -401,13 +507,13 @@ export default {
         });
         if (!result.isConfirmed) return;
         await axios.delete(`projects/${pid}/collections/${cid}/${contentId}/move-to-trash`);
-        window.$toast.success(__("Moved to trash."));
+        toast.success(__("Moved to trash."));
         router.push({
           name: "projects.collections.content.list",
           params: { project_id: pid, col_id: cid },
         });
       } catch (e) {
-        window.$toast.error(__("Failed to move to trash."));
+        toast.error(__("Failed to move to trash."));
       }
     }
 
@@ -416,7 +522,7 @@ export default {
         await loadEntry();
       } catch (e) {
         console.error("load edit form failed:", e);
-        window.$toast.error(__("Failed to load link."));
+        toast.error(__("Failed to load link."));
       }
     });
 
@@ -424,6 +530,7 @@ export default {
       pid, cid, contentId, project, collection,
       categories, tags, selectedTags, faviconPreview, saving, loaded, form,
       canManage, previewFavicon, save, moveToTrash,
+      checking, checkResult, checkLink,
     };
   },
 };

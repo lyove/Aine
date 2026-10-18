@@ -42,6 +42,23 @@
 
             <button
               type="button"
+              class="rounded-lg bg-sky-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-600 disabled:opacity-50"
+              :disabled="checking || !rows.length"
+              @click="checkAll"
+            >
+              <i class="fa fa-heartbeat mr-1"></i>{{ __('Check All') }}
+            </button>
+            <button
+              type="button"
+              class="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 disabled:opacity-50"
+              :disabled="checking || !deadRows.length"
+              @click="checkDead"
+            >
+              <i class="fa fa-redo-alt mr-1"></i>{{ __('Re-check Dead') }}
+            </button>
+
+            <button
+              type="button"
               class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
               @click="reload(currentPage)"
             >
@@ -58,7 +75,31 @@
           </div>
         </div>
 
-        <!-- 状态过滤 -->
+        <div
+          v-if="checking"
+          class="mb-4 flex items-center gap-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5"
+        >
+          <i class="fa fa-spinner fa-spin text-sky-500"></i>
+          <span class="text-sm font-medium text-sky-700">
+            {{ __('Checking') }} {{ checkedCount }}/{{ checkTotal }}
+          </span>
+          <div class="h-2 flex-1 overflow-hidden rounded-full bg-sky-100">
+            <div
+              class="h-full rounded-full bg-sky-500 transition-all"
+              :style="{ width: checkPercent + '%' }"
+            ></div>
+          </div>
+          <span class="text-xs text-sky-600">
+            <span class="font-semibold text-emerald-600">{{ checkOk }}</span> {{ __('ok') }}
+            · <span class="font-semibold text-red-500">{{ checkDeadCount }}</span> {{ __('dead') }}
+          </span>
+          <button
+            type="button"
+            class="text-xs font-medium text-sky-500 hover:text-sky-700"
+            @click="stopChecking = true"
+          >{{ __('Stop') }}</button>
+        </div>
+
         <div class="mb-4 flex items-center gap-1">
           <button
             v-for="tab in statusTabs"
@@ -70,6 +111,15 @@
           >
             {{ tab.label }}
           </button>
+          <button
+            type="button"
+            class="ml-1 rounded-full px-3 py-1 text-sm"
+            :class="linkFilter === 'dead' ? 'bg-red-500 text-white' : 'bg-white text-red-500 hover:bg-red-50'"
+            @click="toggleDeadFilter"
+          >
+            <i class="fa fa-exclamation-triangle mr-1"></i>{{ __('Dead') }}
+            <span v-if="deadRows.length" class="ml-1 rounded-full bg-white/20 px-1.5 text-xs">{{ deadRows.length }}</span>
+          </button>
         </div>
 
         <!-- 表格 -->
@@ -78,9 +128,9 @@
             <div v-for="n in 5" :key="n" class="h-12 animate-pulse rounded-lg bg-gray-100"></div>
           </div>
 
-          <div v-else-if="!rows.length" class="p-14 text-center text-sm text-gray-400">
+          <div v-else-if="!filteredRows.length" class="p-14 text-center text-sm text-gray-400">
             <i class="fa fa-link-slash mb-3 block text-3xl text-gray-300"></i>
-            {{ __('No links found.') }}
+            {{ linkFilter === 'dead' ? __('No dead links found.') : __('No links found.') }}
           </div>
 
           <table v-else class="w-full text-left text-sm">
@@ -91,12 +141,13 @@
                 <th class="px-4 py-3 font-medium">{{ __('Tags') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Weight') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Click') }}</th>
+                <th class="px-4 py-3 font-medium">{{ __('Availability') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Status') }}</th>
                 <th class="px-4 py-3 text-right font-medium">{{ __('Actions') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
-              <tr v-for="row in rows" :key="row.id" class="hover:bg-indigo-50/40">
+              <tr v-for="row in filteredRows" :key="row.id" class="hover:bg-indigo-50/40">
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
                     <img
@@ -166,6 +217,29 @@
                   </span>
                 </td>
                 <td class="px-4 py-3">
+                  <span v-if="checkingIds.has(row.id)" class="inline-flex items-center gap-1.5 text-xs text-sky-500">
+                    <i class="fa fa-spinner fa-spin"></i>{{ __('Checking') }}
+                  </span>
+                  <span
+                    v-else
+                    class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold"
+                    :class="availabilityClass(row)"
+                  >
+                    <template v-if="row.link_status === 'ok'">
+                      <i class="fa fa-check-circle"></i>{{ row.http_code || 'OK' }}
+                    </template>
+                    <template v-else-if="row.link_status === 'dead'">
+                      <i class="fa fa-exclamation-circle"></i>{{ row.http_code ? 'HTTP ' + row.http_code : __('Dead') }}
+                    </template>
+                    <template v-else>
+                      <i class="fa fa-minus-circle"></i>{{ __('Unknown') }}
+                    </template>
+                  </span>
+                  <div v-if="row.link_status && row.link_status !== 'unknown' && row.last_checked_at" class="mt-0.5 text-[10px] text-gray-400">
+                    {{ row.last_checked_at }}
+                  </div>
+                </td>
+                <td class="px-4 py-3">
                   <span
                     class="rounded-full px-2 py-0.5 text-xs"
                     :class="statusClass(row.status)"
@@ -173,13 +247,6 @@
                 </td>
                 <td class="px-4 py-3">
                   <div class="flex items-center justify-end gap-1">
-                    <a
-                      :href="`/navigation/link/${row.id}`"
-                      target="_blank"
-                      rel="noopener"
-                      class="rounded-lg bg-gray-50 p-2 text-gray-500 hover:bg-gray-100"
-                      :title="__('Preview on frontend')"
-                    ><i class="fa fa-external-link-alt"></i></a>
                     <router-link
                       v-if="canEdit"
                       :to="{ name: 'projects.collections.content.edit', params: { project_id: pid, col_id: cid, content_id: row.id } }"
@@ -232,6 +299,8 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 import { useAdminStore } from "@/admin/store";
 import { __ } from "@/admin/translations/engine";
+import Swal from "sweetalert2";
+import { useToast } from "vue-toastification";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
@@ -239,6 +308,7 @@ export default {
   name: "NavigationLinksList",
   components: { ProjectHeader, CollectionSidebar },
   setup() {
+    const toast = useToast();
     const route = useRoute();
     const store = useAdminStore();
 
@@ -255,13 +325,21 @@ export default {
     const each = ref(15);
     const currentPage = ref(1);
     const getItems = ref("all");
+    const linkFilter = ref("all"); // "all" | "dead"  (client-side availability filter)
+
+    const checking = ref(false);
+    const stopChecking = ref(false);
+    const checkingIds = ref(new Set());
+    const checkedCount = ref(0);
+    const checkTotal = ref(0);
+    const checkOk = ref(0);
+    const checkDeadCount = ref(0);
 
     const totalCount = ref(0);
     const publishedCount = ref(0);
     const draftCount = ref(0);
     const trashedCount = ref(0);
 
-    // 分类/标签 id → 名称/颜色 映射
     const categoryMap = ref({});
     const tagMap = ref({});
 
@@ -308,6 +386,15 @@ export default {
       if (status === "trashed") return "bg-orange-100 text-orange-600";
       return "bg-amber-100 text-amber-600";
     }
+
+    function availabilityClass(row) {
+      if (row.link_status === "ok") return "bg-emerald-100 text-emerald-600";
+      if (row.link_status === "dead") return "bg-red-100 text-red-600";
+      return "bg-gray-100 text-gray-400";
+    }
+
+    const deadRows = computed(() => rows.value.filter((r) => r.link_status === "dead"));
+    const checkPercent = computed(() => (checkTotal.value ? Math.round((checkedCount.value / checkTotal.value) * 100) : 0));
 
     function categoryName(value) {
       const id = String(value || "").split(",")[0];
@@ -431,12 +518,13 @@ export default {
 
     function changeGetItems(value) {
       getItems.value = value;
+      linkFilter.value = "all"; // 切发布状态 tab 时重置可访问性筛选
       reload(1);
     }
 
     async function moveToTrash(row) {
       try {
-        const result = await window.$swal.fire({
+        const result = await Swal.fire({
           title: __("Move to trash?"),
           text: `"${row.title}"`,
           icon: "warning",
@@ -446,24 +534,106 @@ export default {
         });
         if (!result.isConfirmed) return;
         await axios.delete(`projects/${pid}/collections/${cid}/${row.id}/move-to-trash`);
-        window.$toast.success(__("Moved to trash."));
+        toast.success(__("Moved to trash."));
         reload();
       } catch (e) {
-        window.$toast.error(__("Failed to move to trash."));
+        toast.error(__("Failed to move to trash."));
       }
     }
+
+    async function checkRow(row) {
+      checkingIds.value.add(row.id);
+      try {
+        const { data } = await axios.post(`projects/${pid}/collections/${cid}/${row.id}/check-link`);
+        row.link_status = data.link_status;
+        row.http_code = data.http_code;
+        row.last_checked_at = data.last_checked_at;
+        // 同步回当前页渲染的行对象，让列表立即刷新
+        const live = rows.value.find((r) => r.id === row.id);
+        if (live) {
+          live.link_status = data.link_status;
+          live.http_code = data.http_code;
+          live.last_checked_at = data.last_checked_at;
+        }
+        if (data.link_status === "ok") checkOk.value++;
+        else if (data.link_status === "dead") checkDeadCount.value++;
+      } catch (e) {
+        //
+      } finally {
+        checkingIds.value.delete(row.id);
+        checkedCount.value++;
+      }
+    }
+
+    async function runCheck(targetRows) {
+      if (!targetRows.length || checking.value) return;
+      checking.value = true;
+      stopChecking.value = false;
+      checkOk.value = 0;
+      checkDeadCount.value = 0;
+      checkedCount.value = 0;
+      checkTotal.value = targetRows.length;
+
+      const CONCURRENCY = 4;
+      let idx = 0;
+      async function worker() {
+        while (!stopChecking.value && idx < targetRows.length) {
+          const row = targetRows[idx++];
+          if (row.url) await checkRow(row);
+          else checkedCount.value++;
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, targetRows.length) }, worker));
+
+      checking.value = false;
+      toast.success(
+        __("Check complete") + `: ${checkOk.value} ${__("ok")} · ${checkDeadCount.value} ${__("dead")}`,
+        { timeout: 4000 }
+      );
+    }
+
+    async function fetchAllRows() {
+      try {
+        const { data } = await axios.get(`projects/${pid}/collections/${cid}/entries`, {
+          params: { each: 200, getItems: "all", orderBy: "weight", cr: "ASC", sbm: 1 },
+        });
+        return (data.content.data || []).map(flattenRow);
+      } catch (e) {
+        return rows.value.slice();
+      }
+    }
+
+    async function checkAll() {
+      const all = await fetchAllRows();
+      await runCheck(all.filter((r) => r.url));
+    }
+
+    async function checkDead() {
+      const all = await fetchAllRows();
+      await runCheck(all.filter((r) => r.url && r.link_status === "dead"));
+    }
+
+    function toggleDeadFilter() {
+      linkFilter.value = linkFilter.value === "dead" ? "all" : "dead";
+    }
+
+    const filteredRows = computed(() =>
+      linkFilter.value === "dead" ? rows.value.filter((r) => r.link_status === "dead") : rows.value
+    );
 
     onMounted(() => reload(1));
 
     return {
       project, collection, rows, loading,
-      search, each, currentPage, getItems,
+      search, each, currentPage, getItems, linkFilter,
       totalCount, publishedCount, draftCount, trashedCount,
       totalPages, statusTabs,
       canEdit, canManage,
-      initials, clickBehavior, statusLabel, statusClass,
+      initials, clickBehavior, statusLabel, statusClass, availabilityClass,
       categoryName, categoryColor, categoryStyle, tagNames,
       reload, changeGetItems, moveToTrash,
+      checking, stopChecking, checkingIds, checkedCount, checkTotal, checkOk, checkDeadCount, checkPercent,
+      deadRows, filteredRows, checkAll, checkDead, toggleDeadFilter,
     };
   },
 };

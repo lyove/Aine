@@ -108,6 +108,8 @@ import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import { useAdminStore } from "@/admin/store";
 import { __ } from "@/admin/translations/engine";
+import Swal from "sweetalert2";
+import { useToast } from "vue-toastification";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
@@ -115,6 +117,7 @@ export default {
   name: "NavigationCategoriesEdit",
   components: { ProjectHeader, CollectionSidebar },
   setup() {
+    const toast = useToast();
     const route = useRoute();
     const router = useRouter();
     const store = useAdminStore();
@@ -155,7 +158,7 @@ export default {
 
     async function save(published) {
       if (!form.title.trim()) {
-        window.$toast.error(__("Name is required."));
+        toast.error(__("Name is required."));
         return;
       }
       saving.value = true;
@@ -171,14 +174,14 @@ export default {
             color: form.color,
           },
         });
-        window.$toast.success(__("Category saved!"));
+        toast.success(__("Category saved!"));
         router.push({
           name: "projects.collections.content.list",
           params: { project_id: pid, col_id: cid },
         });
       } catch (e) {
         const msg = e.response && e.response.data && e.response.data.message;
-        window.$toast.error(msg || __("Failed to save category."));
+        toast.error(msg || __("Failed to save category."));
       } finally {
         saving.value = false;
       }
@@ -186,7 +189,7 @@ export default {
 
     async function moveToTrash() {
       try {
-        const result = await window.$swal.fire({
+        const result = await Swal.fire({
           title: __("Move to trash?"),
           text: `"${form.title}"`,
           icon: "warning",
@@ -196,13 +199,13 @@ export default {
         });
         if (!result.isConfirmed) return;
         await axios.delete(`projects/${pid}/collections/${cid}/${contentId}/move-to-trash`);
-        window.$toast.success(__("Moved to trash."));
+        toast.success(__("Moved to trash."));
         router.push({
           name: "projects.collections.content.list",
           params: { project_id: pid, col_id: cid },
         });
       } catch (e) {
-        window.$toast.error(__("Failed to move to trash."));
+        toast.error(__("Failed to move to trash."));
       }
     }
 
@@ -211,7 +214,7 @@ export default {
         await loadEntry();
       } catch (e) {
         console.error("load edit form failed:", e);
-        window.$toast.error(__("Failed to load category."));
+        toast.error(__("Failed to load category."));
       }
     });
 

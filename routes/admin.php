@@ -219,6 +219,7 @@ Route::middleware(['auth:web', 'backend.user'])->prefix(\App\Support\AdminPath::
         Route::delete('/{content_id}/discard-draft', [ContentController::class, 'discardDraft']);
         Route::delete('/{content_id}/move-to-trash', [ContentController::class, 'moveToTrash']);
         Route::delete('/{content_id}', [ContentController::class, 'delete']);
+        Route::post('/{content_id}/check-link', [ContentController::class, 'checkLink']);
 
         // Preview token
         Route::post('/{content_id}/preview-token', [PreviewController::class, 'generate']);

@@ -1034,6 +1034,50 @@ class ContentController extends Controller
         return response([], 200);
     }
 
+    /**
+     * Check a single link's availability (navigation links).
+     * Marks the result into link_status / http_code / last_checked_at;
+     * dead links stay visible — the editor handles them manually.
+     */
+    public function checkLink($project_id, $collection_id, $content_id)
+    {
+        $project = Project::findOrFail($project_id);
+        $this->authorizeEditor($project);
+
+        $content = Content::with('meta')
+            ->where('project_id', $project->id)
+            ->where('collection_id', $collection_id)
+            ->where('id', $content_id)->firstOrFail();
+
+        $meta = $content->meta->pluck('value', 'field_name');
+        $url = $meta->get('url');
+        if (empty($url)) {
+            return response(['message' => 'Link has no URL'], 422);
+        }
+
+        $result = app(\App\Services\LinkCheckService::class)->check($url);
+        $now = now()->toDateTimeString();
+
+        foreach (['link_status' => $result['status'], 'http_code' => $result['code'], 'last_checked_at' => $now] as $field => $value) {
+            ContentMeta::updateOrCreate(
+                [
+                    'content_id' => $content->id,
+                    'field_name' => $field,
+                    'project_id' => $content->project_id,
+                    'collection_id' => $content->collection_id,
+                ],
+                ['value' => $value === null ? '' : (string) $value]
+            );
+        }
+
+        return response([
+            'link_status' => $result['status'],
+            'http_code' => $result['code'],
+            'last_checked_at' => $now,
+            'message' => $result['message'],
+        ], 200);
+    }
+
     public function moveToTrash($project_id, $collection_id, $content_id)
     {
         $project = Project::findOrFail($project_id);
@@ -1041,6 +1085,33 @@ class ContentController extends Controller
 
         $content = Content::where('project_id', $project->id)
             ->where('collection_id', $collection_id)->where('id', $content_id)->firstOrFail();
+
+        // Tag cascade: when trashing a tag, remove its id from every link's tags field.
+        $collection = Collection::where('id', $collection_id)->where('project_id', $project->id)->first();
+        if ($collection && $collection->slug === 'tags') {
+            $links = Collection::where('slug', 'links')->where('project_id', $project->id)->first();
+            if ($links) {
+                $tagId = (string) $content->id;
+                Content::where('project_id', $project->id)
+                    ->where('collection_id', $links->id)
+                    ->with('meta')
+                    ->get()
+                    ->each(function ($link) use ($tagId) {
+                        $meta = $link->meta->firstWhere('field_name', 'tags');
+                        if (! $meta) {
+                            return;
+                        }
+                        $ids = array_values(array_filter(
+                            explode(',', (string) $meta->value),
+                            fn ($id) => $id !== '' && (string) $id !== $tagId
+                        ));
+                        $newValue = implode(',', $ids);
+                        if ($newValue !== $meta->value) {
+                            $meta->update(['value' => $newValue]);
+                        }
+                    });
+            }
+        }
 
         if ($content->isDraftBranch()) {
             // No cascade needed — the parent just loses the pending draft indicator.

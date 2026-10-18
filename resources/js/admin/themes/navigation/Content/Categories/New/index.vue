@@ -94,6 +94,8 @@ import { ref, reactive, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import { __ } from "@/admin/translations/engine";
+import Swal from "sweetalert2";
+import { useToast } from "vue-toastification";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
@@ -101,6 +103,7 @@ export default {
   name: "NavigationCategoriesNew",
   components: { ProjectHeader, CollectionSidebar },
   setup() {
+    const toast = useToast();
     const route = useRoute();
     const router = useRouter();
     const pid = route.params.project_id;
@@ -118,7 +121,7 @@ export default {
 
     async function save(published) {
       if (!form.title.trim()) {
-        window.$toast.error(__("Name is required."));
+        toast.error(__("Name is required."));
         return;
       }
       saving.value = true;
@@ -134,14 +137,14 @@ export default {
             color: form.color,
           },
         });
-        window.$toast.success(__("Category created!"));
+        toast.success(__("Category created!"));
         router.push({
           name: "projects.collections.content.list",
           params: { project_id: pid, col_id: cid },
         });
       } catch (e) {
         const msg = e.response && e.response.data && e.response.data.message;
-        window.$toast.error(msg || __("Failed to create category."));
+        toast.error(msg || __("Failed to create category."));
       } finally {
         saving.value = false;
       }
