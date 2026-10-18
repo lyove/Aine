@@ -55,6 +55,17 @@
                             :class="isActive('note') ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'"
                         ></span>
                     </router-link>
+                    <router-link
+                        to="/navigation"
+                        class="group relative whitespace-nowrap rounded-lg px-3.5 py-2 font-medium text-gray-600 transition hover:text-indigo-600"
+                        :class="{ 'text-indigo-600': isActive('navigation') }"
+                    >
+                        <span class="relative z-10">Navigation</span>
+                        <span
+                            class="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-indigo-600 transition-all duration-300"
+                            :class="isActive('navigation') ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'"
+                        ></span>
+                    </router-link>
                 </nav>
 
                 <!-- Hamburger menu (shown when nav overflows) -->
@@ -79,6 +90,7 @@
                         <router-link to="/content" class="block px-4 py-2.5 text-sm transition hover:bg-indigo-50" :class="isActive('content') ? 'font-semibold text-indigo-600' : 'text-gray-700'" @click="mobileNavOpen = false">Content</router-link>
                         <router-link to="/directory" class="block px-4 py-2.5 text-sm transition hover:bg-indigo-50" :class="isActive('directory') ? 'font-semibold text-indigo-600' : 'text-gray-700'" @click="mobileNavOpen = false">Directory</router-link>
                         <router-link to="/note" class="block px-4 py-2.5 text-sm transition hover:bg-indigo-50" :class="isActive('note') ? 'font-semibold text-indigo-600' : 'text-gray-700'" @click="mobileNavOpen = false">Note</router-link>
+                        <router-link to="/navigation" class="block px-4 py-2.5 text-sm transition hover:bg-indigo-50" :class="isActive('navigation') ? 'font-semibold text-indigo-600' : 'text-gray-700'" @click="mobileNavOpen = false">Navigation</router-link>
                     </div>
                 </div>
 
@@ -389,6 +401,7 @@ export default {
             if (name === "content") return this.$route.name === "content.index";
             if (name === "directory") return this.$route.name === "directory.index";
             if (name === "note") return this.$route.name === "note.index";
+            if (name === "navigation") return this.$route.name === "navigation.index";
             return false;
         },
         initials() {

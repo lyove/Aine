@@ -66,7 +66,7 @@
 
 <script>
 import { useFrontendStore } from "../../store";
-import ContentTabs from "../../components/ContentTabs.vue";
+import ContentTabs from "./components/ContentTabs.vue";
 
 export default {
     name: "PagesList",

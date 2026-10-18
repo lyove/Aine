@@ -198,7 +198,7 @@
 <script>
 import { api } from "../../api";
 import { PROJECTS } from "../../config";
-import ContentActions from "../../components/ContentActions.vue";
+import ContentActions from "./components/ContentActions.vue";
 
 export default {
     name: "ListingDetail",

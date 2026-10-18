@@ -157,7 +157,7 @@ import { formatDate } from "../../../utils/filters";
 import { api } from "../../api";
 import { PROJECTS } from "../../config";
 import SsmlEditor from "../../../components/SsmlEditor.vue";
-import ContentActions from "../../components/ContentActions.vue";
+import ContentActions from "./components/ContentActions.vue";
 
 export default {
     name: "ArticleDetail",

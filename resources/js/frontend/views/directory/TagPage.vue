@@ -85,8 +85,8 @@
 import { api } from "../../api";
 import { PROJECTS, ARCHIVE_PAGE_SIZE } from "../../config";
 import { useFrontendStore } from "../../store";
-import ArticleCard from "../../components/ArticleCard.vue";
-import ListingCard from "../../components/ListingCard.vue";
+import ArticleCard from "./components/ArticleCard.vue";
+import ListingCard from "./components/ListingCard.vue";
 
 export default {
     name: "TagPage",

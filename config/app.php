@@ -45,6 +45,8 @@ return [
 
     'frontend_note_project' => env('FRONTEND_NOTE_PROJECT', 'note'),
 
+    'frontend_navigation_project' => env('FRONTEND_NAVIGATION_PROJECT', 'navigation'),
+
     /*
     |--------------------------------------------------------------------------
     | Content Security Policy

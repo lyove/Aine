@@ -7,6 +7,7 @@
         <meta name="cms-project-identifier" content="{{ config('app.frontend_cms_project', 'cms') }}">
         <meta name="directory-project-identifier" content="{{ config('app.frontend_directory_project', 'directory') }}">
         <meta name="note-project-identifier" content="{{ config('app.frontend_note_project', 'note') }}">
+        <meta name="navigation-project-identifier" content="{{ config('app.frontend_navigation_project', 'navigation') }}">
 
         <!-- <title>{{ env("APP_NAME") }}</title> -->
         <title>{{ config('app.name', __('Aine')) }}</title>

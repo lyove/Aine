@@ -78,7 +78,7 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('api-favicon', function (Request $request) {
-            return Limit::perMinute(30)->by('favicon:'.$request->ip());
+            return Limit::perMinute(120)->by('favicon:'.$request->ip());
         });
     }
 }

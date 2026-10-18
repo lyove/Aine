@@ -101,9 +101,9 @@
 import { api } from "../../api";
 import { PROJECTS, ARCHIVE_PAGE_SIZE } from "../../config";
 import { useFrontendStore } from "../../store";
-import ArticleCard from "../../components/ArticleCard.vue";
-import ListingCard from "../../components/ListingCard.vue";
-import ContentTabs from "../../components/ContentTabs.vue";
+import ArticleCard from "./components/ArticleCard.vue";
+import ListingCard from "./components/ListingCard.vue";
+import ContentTabs from "./components/ContentTabs.vue";
 
 export default {
     name: "Archive",

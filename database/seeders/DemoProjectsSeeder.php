@@ -41,6 +41,7 @@ class DemoProjectsSeeder extends Seeder
         $this->seedCmsProject();
         $this->seedDirectoryProject();
         $this->seedNoteProject();
+        $this->seedNavigationProject();
     }
 
     /* ------------------------------------------------------------------ */
@@ -1209,5 +1210,131 @@ class DemoProjectsSeeder extends Seeder
         }
 
         $this->seedProjectFeatures($project, $c['posts']);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Navigation project (网址导航)                                        */
+    /* ------------------------------------------------------------------ */
+
+    protected function seedNavigationProject(): void
+    {
+        $project = $this->createProject([
+            'name' => '网址导航',
+            'slug' => 'navigation',
+            'theme_id' => null,
+            'description' => '网址导航——分类收录常用网站，支持搜索、置顶推荐与私有链接。',
+            'default_locale' => 'zh',
+            'locales' => 'zh',
+            'disk' => 'local',
+            'public_api' => true,
+            'domain_whitelist' => [
+                config('app.url'),
+                'http://localhost:3000',
+                'http://localhost:5173',
+            ],
+        ]);
+
+        ProjectTranslation::updateOrCreate(
+            ['project_id' => $project->id, 'locale' => 'en', 'source' => $project->description],
+            ['value' => 'Website navigation — curated links by category, with search, featured and private links.']
+        );
+
+        ProjectTranslation::updateOrCreate(
+            ['project_id' => $project->id, 'locale' => 'en', 'source' => $project->name],
+            ['value' => 'Website Navigation']
+        );
+
+        $c = ProjectTemplates::apply($project, ProjectTemplates::get(ProjectTemplates::NAVIGATION));
+
+        /* --- Categories (5) --- */
+        $categories = [];
+        foreach ([
+            ['开发工具', 'dev-tools', '代码托管、调试、构建与部署相关的开发者工具站。', 1, 1],
+            ['设计资源', 'design', '灵感、素材与设计协作平台。', 2, 1],
+            ['学习社区', 'learning', '教程、问答与技术学习社区。', 3, 1],
+            ['效率办公', 'productivity', '文档协作、笔记与效率工具。', 4, 1],
+            ['技术社区', 'tech-community', '开发者讨论与资讯社区。', 5, 1],
+        ] as $i => [$title, $url, $desc, $weight, $featured]) {
+            $categories[$title] = $this->addContent($project, $c['categories'], [
+                'title' => $title, 'slug' => $url, 'description' => $desc,
+                'weight' => $weight, 'featured' => $featured,
+            ], published: true, daysAgo: 25 - $i, locale: 'zh')->id;
+        }
+
+        /* --- Tags --- */
+        $tags = [];
+        foreach (['代码', '设计', '学习', '效率', '社区', '前端', '后端', '资讯', 'AI'] as $i => $tag) {
+            $tags[$tag] = $this->addContent($project, $c['tags'], ['tag' => $tag], published: true, daysAgo: 24 - $i, locale: 'zh')->id;
+        }
+
+        /* --- Links (title, url, description, category, tags, weight, featured, private) --- */
+        $linkData = [
+            // 开发工具
+            ['GitHub', 'https://github.com', '全球最大的代码托管与协作平台。', '开发工具', ['代码', '社区'], 1, 1, 0],
+            ['GitLab', 'https://gitlab.com', '开源的 DevSecOps 一体化平台。', '开发工具', ['代码'], 2, 0, 0],
+            ['Stack Overflow', 'https://stackoverflow.com', '程序员问答社区，海量解决方案。', '开发工具', ['代码', '社区'], 3, 0, 0],
+            ['MDN Web Docs', 'https://developer.mozilla.org/zh-CN/', 'Web 技术权威文档。', '开发工具', ['前端'], 4, 0, 0],
+            ['Vercel', 'https://vercel.com', '前端项目一键部署平台。', '开发工具', ['后端'], 5, 0, 0],
+            // 设计资源
+            ['Dribbble', 'https://dribbble.com', '全球设计师作品展示社区。', '设计资源', ['设计'], 1, 1, 0],
+            ['Figma', 'https://www.figma.com', '团队协作式 UI 设计工具。', '设计资源', ['设计'], 2, 0, 0],
+            ['Unsplash', 'https://unsplash.com', '免费高清图库。', '设计资源', ['设计'], 3, 0, 0],
+            ['Flaticon', 'https://www.flaticon.com', '海量免费图标素材。', '设计资源', ['设计'], 4, 0, 0],
+            ['站酷', 'https://www.zcool.com.cn', '中国设计师互动平台。', '设计资源', ['设计'], 5, 0, 0],
+            // 学习社区
+            ['哔哩哔哩', 'https://www.bilibili.com', '学习与创作视频社区。', '学习社区', ['学习'], 1, 1, 0],
+            ['知乎', 'https://www.zhihu.com', '中文问答社区。', '学习社区', ['学习', '社区'], 2, 0, 0],
+            ['掘金', 'https://juejin.cn', '面向开发者的技术社区。', '学习社区', ['前端', '后端'], 3, 0, 0],
+            ['CSDN', 'https://www.csdn.net', '中文 IT 技术社区。', '学习社区', ['代码'], 4, 0, 0],
+            ['慕课网', 'https://www.imooc.com', 'IT 技能学习平台。', '学习社区', ['学习'], 5, 0, 0],
+            // 效率办公
+            ['Notion', 'https://www.notion.so', '一体化笔记与协作空间。', '效率办公', ['效率'], 1, 1, 0],
+            ['飞书', 'https://www.feishu.cn', '一站式协作办公平台。', '效率办公', ['效率'], 2, 0, 0],
+            ['腾讯文档', 'https://docs.qq.com', '在线协作文档。', '效率办公', ['效率'], 3, 0, 0],
+            ['ProcessOn', 'https://www.processon.com', '在线流程图与思维导图。', '效率办公', ['效率'], 4, 0, 0],
+            ['滴答清单', 'https://www.dida365.com', '待办事项与任务管理。', '效率办公', ['效率'], 5, 0, 0],
+            // 技术社区
+            ['V2EX', 'https://www.v2ex.com', '创意工作者社区。', '技术社区', ['社区'], 1, 1, 0],
+            ['Hacker News', 'https://news.ycombinator.com', '硅谷科技资讯社区。', '技术社区', ['资讯', '社区'], 2, 0, 0],
+            ['SegmentFault', 'https://segmentfault.com', '中文技术问答社区。', '技术社区', ['代码'], 3, 0, 0],
+            ['InfoQ', 'https://www.infoq.cn', '技术资讯与深度文章。', '技术社区', ['资讯'], 4, 0, 0],
+            ['少数派', 'https://sspai.com', '数字生活与效率内容社区。', '技术社区', ['效率', '资讯'], 5, 0, 0],
+        ];
+
+        foreach ($linkData as $i => [$title, $url, $desc, $cat, $tagNames, $weight, $featured, $private]) {
+            $tagIds = array_map(fn ($t) => $tags[$t], $tagNames);
+            $this->addContent($project, $c['links'], [
+                'title' => $title, 'url' => $url, 'description' => $desc,
+                'category' => $categories[$cat],
+                'tags' => implode(',', $tagIds),
+                'weight' => $weight, 'featured' => $featured, 'private' => $private,
+                'click_behavior' => in_array($title, ['Dribbble', 'V2EX']) ? 'direct' : 'detail',
+            ], published: true, daysAgo: max(20 - $i, 1), locale: 'zh')->id;
+        }
+
+        /* --- Globals --- */
+        foreach ([
+            ['label' => 'site-name', 'value' => '网址导航'],
+            ['label' => 'site-description', 'value' => '常用网站分类导航'],
+            ['label' => 'search-engine', 'value' => 'https://www.bing.com/search?q='],
+            ['label' => 'footer-text', 'value' => '© 2026 网址导航 —— 基于 Aine 构建'],
+        ] as $i => $data) {
+            $this->addContent($project, $c['globals'], $data, published: true, daysAgo: 15 - $i, locale: 'zh');
+        }
+
+        /* --- Project translations (en) --- */
+        foreach ([
+            'Categories' => '分类', 'Links' => '链接', 'Tags' => '标签', 'Globals' => '全局设置',
+            'Name' => '名称', 'Path' => '路径', 'Icon' => '图标', 'Color' => '颜色',
+            'Parent Category' => '上级分类', 'Weight' => '排序权重', 'Featured' => '置顶推荐',
+            'URL' => '网址', 'Description' => '描述', 'Category' => '分类', 'Tag' => '标签',
+            'Private' => '私有链接', 'Label' => '配置键', 'Value' => '配置值',
+            'Click Behavior' => '点击行为',
+        ] as $source => $value) {
+            ProjectTranslation::updateOrCreate(
+                ['project_id' => $project->id, 'locale' => 'zh', 'source' => $source],
+                ['value' => $value]
+            );
+        }
     }
 }

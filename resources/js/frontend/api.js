@@ -9,9 +9,11 @@ import { PROJECTS, COLLECTIONS } from "./config";
 const cms = PROJECTS.cms.identifier;
 const directory = PROJECTS.directory.identifier;
 const note = PROJECTS.note.identifier;
+const navigation = PROJECTS.navigation.identifier;
 const articles = PROJECTS.cms.contentCollection;
 const listings = PROJECTS.directory.contentCollection;
 const posts = PROJECTS.note.contentCollection;
+const links = PROJECTS.navigation.contentCollection;
 
 const endpoints = {
   // =================================================================
@@ -352,6 +354,105 @@ const endpoints = {
   },
 
   // =================================================================
+  // Navigation project — links
+  // =================================================================
+  getNavigationLinks: {
+    type: "get",
+    project: navigation,
+    collection: links,
+  },
+  getNavigationLink: {
+    type: "get",
+    project: navigation,
+    collection: links,
+    id: true,
+  },
+  getNavigationLinkBySlug: {
+    type: "get",
+    project: navigation,
+    collection: links,
+    id: true,
+    bySlug: true,
+  },
+  searchNavigationLinks: {
+    type: "get",
+    project: navigation,
+    collection: links,
+    action: "search",
+  },
+
+  // =================================================================
+  // Navigation project — categories
+  // =================================================================
+  getNavigationCategories: {
+    type: "get",
+    project: navigation,
+    collection: COLLECTIONS.categories,
+  },
+  getNavigationCategory: {
+    type: "get",
+    project: navigation,
+    collection: COLLECTIONS.categories,
+    id: true,
+  },
+  getNavigationCategoryLinks: {
+    type: "get",
+    project: navigation,
+    source: COLLECTIONS.categories,
+    id: true,
+    related: links,
+  },
+  getNavigationCategoryLinksBySlug: {
+    type: "get",
+    project: navigation,
+    source: COLLECTIONS.categories,
+    id: true,
+    bySlug: true,
+    related: links,
+  },
+
+  // =================================================================
+  // Navigation project — tags
+  // =================================================================
+  getNavigationTags: {
+    type: "get",
+    project: navigation,
+    collection: COLLECTIONS.tags,
+  },
+  getNavigationTag: {
+    type: "get",
+    project: navigation,
+    collection: COLLECTIONS.tags,
+    id: true,
+  },
+  getNavigationTagLinks: {
+    type: "get",
+    project: navigation,
+    source: COLLECTIONS.tags,
+    id: true,
+    related: links,
+  },
+
+  // =================================================================
+  // Navigation project — globals
+  // =================================================================
+  getNavigationGlobals: {
+    type: "get",
+    project: navigation,
+    collection: "globals",
+  },
+
+  // =================================================================
+  // Navigation project — portal
+  // =================================================================
+  getNavigationPortal: {
+    type: "get",
+    project: navigation,
+    action: "portal",
+    suppressError: true,
+  },
+
+  // =================================================================
   // Media (CMS project by default)
   // =================================================================
   getMediaList: {
@@ -392,6 +493,10 @@ const endpoints = {
   getNoteProject: {
     type: "get",
     project: note,
+  },
+  getNavigationProject: {
+    type: "get",
+    project: navigation,
   },
 };
 
@@ -842,12 +947,53 @@ api.removeLike = async function (projectIdentifier, contentId) {
  * Frontend user profile (own data only)
  * ------------------------------------------------------------------ */
 
-api.getMyProfile = async function () {
-  const response = await http.get("/api/me/profile");
+api.getProject = async function (projectSlug) {
+  const response = await http.get(`/api/project/${projectSlug}`);
   return response && response.data ? response.data.data : null;
 };
 
-api.updateAvatar = async function (formData) {
+// Favicon auto-fetch is fired from every link card on first load; throttle
+// concurrent requests so a 25-link page never slams the API at once.
+const FAVICON_MAX_CONCURRENCY = 4;
+let faviconInFlight = 0;
+const faviconWaiters = [];
+
+function fetchFaviconQueued(url) {
+  return new Promise((resolve, reject) => {
+    const run = () => {
+      faviconInFlight += 1;
+      http
+        .get("/api/getFavicon", { params: { url } })
+        .then((response) => {
+          resolve(response && response.data ? response.data.data : null);
+        })
+        .catch((error) => {
+          reject(error);
+        })
+        .finally(() => {
+          faviconInFlight -= 1;
+          const next = faviconWaiters.shift();
+          if (next) {
+            next();
+          }
+        });
+    };
+    if (faviconInFlight < FAVICON_MAX_CONCURRENCY) {
+      run();
+    } else {
+      faviconWaiters.push(run);
+    }
+  });
+}
+
+api.getFavicon = async function (url) {
+  return fetchFaviconQueued(url);
+};
+
+api.getMyProfile = async function () {
+  const response = await http.get("/api/me/profile");
+  return response && response.data ? response.data.data : null;
+};api.updateAvatar = async function (formData) {
   const response = await http.post("/api/me/avatar", formData);
   return response && response.data ? response.data.data : null;
 };

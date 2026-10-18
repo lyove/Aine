@@ -45,6 +45,22 @@ class ProjectResource extends JsonResource
             'contact_email' => $this->contact_email,
             'contact_phone' => $this->contact_phone,
             'contact_text' => $this->contact_text,
+
+            // Theme — design tokens (with per-project overrides) and the
+            // project's theme config, so public frontends can apply them.
+            'theme' => $this->when($this->relationLoaded('theme') || $this->theme !== null, function () {
+                $theme = $this->theme;
+                if (! $theme || ! $theme->is_active) {
+                    return null;
+                }
+                return [
+                    'slug' => $theme->slug,
+                    'name' => $theme->name,
+                    'version' => $theme->version,
+                    'design_tokens' => $theme->mergedTokens($this->resource),
+                    'config' => $this->theme_config ?? [],
+                ];
+            }),
         ];
     }
 }

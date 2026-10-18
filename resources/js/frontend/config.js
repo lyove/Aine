@@ -37,6 +37,13 @@ export const PROJECTS = {
         portal: ["slider", "featured", "recommended", "categoryTabs", "pages"],
         fallbackToLatest: true,
     },
+    navigation: {
+        identifier: meta("navigation-project-identifier") || "navigation",
+        contentCollection: "links",
+        path: "/navigation",
+        label: "Navigation",
+        portal: ["featured", "categoryTabs"],
+    },
 };
 
 /**

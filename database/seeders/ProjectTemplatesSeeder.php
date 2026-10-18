@@ -29,6 +29,12 @@ class ProjectTemplatesSeeder extends Seeder
                 'icon'        => 'fa-sticky-note',
                 'order'       => 3,
             ],
+            ProjectTemplates::NAVIGATION => [
+                'slug'        => 'navigation',
+                'description' => 'Website Navigation (Links, Categories, Tags, Globals)',
+                'icon'        => 'fa-compass',
+                'order'       => 4,
+            ],
         ];
 
         foreach (ProjectTemplates::all() as $type => $def) {

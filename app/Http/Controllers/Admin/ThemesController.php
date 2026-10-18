@@ -131,7 +131,7 @@ class ThemesController extends Controller
             ], 500);
         }
 
-        $project->theme_config = $request->theme_config;
+        $project->refresh();
 
         return response()->json([
             'message' => 'Theme configuration updated.',

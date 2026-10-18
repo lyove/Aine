@@ -25,6 +25,11 @@ const NotePostDetail = () => import("./views/note/PostDetail.vue");
 const NotePageDetail = () => import("./views/note/PageDetail.vue");
 const NotePagesList = () => import("./views/note/PagesList.vue");
 
+const NavigationHome = () => import("./views/navigation/Home.vue");
+const NavigationCategoryPage = () => import("./views/navigation/CategoryPage.vue");
+const NavigationTagPage = () => import("./views/navigation/TagPage.vue");
+const NavigationLinkDetail = () => import("./views/navigation/LinkDetailPage.vue");
+
 const SearchPage = () => import("./views/SearchPage.vue");
 const Profile = () => import("./views/Profile.vue");
 
@@ -69,6 +74,12 @@ const routes = [
     { path: "/note/tag/:slug", name: "note.tag", component: NoteTagPage, props: { project: "note" } },
     { path: "/note/:category/:post", name: "note.post", component: NotePostDetail },
     { path: "/note/:slug", name: "note.page", component: NotePageDetail },
+
+    // ---- Navigation system (/navigation) ----
+    { path: "/navigation", name: "navigation.index", component: NavigationHome, props: { project: "navigation" } },
+    { path: "/navigation/category/:slug", name: "navigation.category", component: NavigationCategoryPage, props: { project: "navigation" } },
+    { path: "/navigation/tag/:slug", name: "navigation.tag", component: NavigationTagPage, props: { project: "navigation" } },
+    { path: "/navigation/link/:id", name: "navigation.link", component: NavigationLinkDetail, props: { project: "navigation" } },
 
     // ---- Global search ----
     { path: "/search", name: "search", component: SearchPage },

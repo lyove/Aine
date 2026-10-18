@@ -291,10 +291,10 @@
                                                 v-model="new_project.template_id"
                                                 :value="tpl.id"
                                             />
-                                            <div class="ml-2">{{ tpl.name }}</div>
+                                            <div class="ml-2">{{ __(tpl.name) }}</div>
                                         </div>
                                         <div class="block text-xs text-gray-500">
-                                            {{ tpl.description }}
+                                            {{ __(tpl.description) }}
                                         </div>
                                     </div>
                                 </div>

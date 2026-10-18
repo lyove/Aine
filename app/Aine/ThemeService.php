@@ -205,7 +205,9 @@ class ThemeService
      */
     public function updateThemeConfig(Project $project, array $config): void
     {
-        $project->update(['theme_config' => $config]);
+        $existing = is_array($project->theme_config) ? $project->theme_config : [];
+        unset($project->my_role);
+        $project->update(['theme_config' => array_merge($existing, $config)]);
     }
 
     /**
