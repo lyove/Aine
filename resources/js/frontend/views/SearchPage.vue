@@ -81,6 +81,7 @@ export default {
                 cms: [],
                 directory: [],
                 note: [],
+                navigation: [],
             },
         };
     },
@@ -93,6 +94,7 @@ export default {
                 { project: "cms", label: PROJECTS.cms.label, items: this.results.cms },
                 { project: "directory", label: PROJECTS.directory.label, items: this.results.directory },
                 { project: "note", label: PROJECTS.note.label, items: this.results.note },
+                { project: "navigation", label: PROJECTS.navigation.label, items: this.results.navigation },
             ].filter((g) => g.items.length > 0);
         },
         totalLabel() {
@@ -118,13 +120,14 @@ export default {
                 item.category?.slug || item.categories?.[0]?.slug || item.location?.slug || "";
             if (project === "cms") return category ? `/content/${category}/${item.slug}` : `/content/${item.slug}`;
             if (project === "directory") return category ? `/directory/${category}/${item.slug}` : `/directory`;
+            if (project === "navigation") return `/navigation/link/${item.id}`;
             return category ? `/note/${category}/${item.slug}` : `/note`;
         },
         async search(q) {
             this.query = q;
             this.error = "";
             if (!q || q.length < 2) {
-                this.results = { cms: [], directory: [], note: [] };
+                this.results = { cms: [], directory: [], note: [], navigation: [] };
                 return;
             }
             this.loading = true;
@@ -133,12 +136,14 @@ export default {
                 api.searchArticles(params).catch(() => []),
                 api.searchListings(params).catch(() => []),
                 api.searchNotePosts(params).catch(() => []),
+                api.searchNavigationLinks(params).catch(() => []),
             ];
-            const [cms, directory, note] = await Promise.all(calls);
+            const [cms, directory, note, navigation] = await Promise.all(calls);
             this.results = {
                 cms: Array.isArray(cms) ? cms : [],
                 directory: Array.isArray(directory) ? directory : [],
                 note: Array.isArray(note) ? note : [],
+                navigation: Array.isArray(navigation) ? navigation : [],
             };
             this.loading = false;
         },

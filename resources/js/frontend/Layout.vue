@@ -391,10 +391,15 @@ export default {
             if (q.length < 2) {
                 return;
             }
-            if (this.$route.name === "search" && this.$route.query.q === q) {
+            // Inside the navigation section the header search targets the
+            // navigation links only; elsewhere it stays the global search.
+            const isNavigation = this.$route.path.startsWith("/navigation");
+            const target = isNavigation ? "/navigation/search" : "/search";
+            const targetName = isNavigation ? "navigation.search" : "search";
+            if (this.$route.name === targetName && this.$route.query.q === q) {
                 return;
             }
-            this.$router.push({ path: "/search", query: { q } });
+            this.$router.push({ path: target, query: { q } });
         },
         isActive(name) {
             if (name === "home") return this.$route.name === "home";

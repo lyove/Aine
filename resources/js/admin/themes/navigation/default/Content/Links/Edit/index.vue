@@ -427,13 +427,11 @@ export default {
     async function previewFavicon() {
       if (!form.url) return;
       try {
-        const { data } = await axios.get("/api/getFavicon", {
-          params: { url: form.url },
-          baseURL: "",
-          skipAuthRedirect: true,
+        const { data } = await axios.post(`projects/${pid}/collections/${cid}/${contentId}/fetch-favicon`, {
+          url: form.url,
         });
-        if (data && data.data && data.data.favicon_url && !data.data.favicon_url.startsWith("data:")) {
-          faviconPreview.value = data.data.favicon_url;
+        if (data && data.favicon_url && !data.favicon_url.startsWith("data:")) {
+          faviconPreview.value = data.favicon_url;
         } else {
           faviconPreview.value = "";
         }

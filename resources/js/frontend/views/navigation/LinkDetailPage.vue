@@ -154,8 +154,6 @@ export default {
         return {
             item: null,
             loading: true,
-            autoFavicon: "",
-            faviconFailed: false,
         };
     },
     computed: {
@@ -166,10 +164,9 @@ export default {
             return this.$route.query.from || "/navigation";
         },
         faviconUrl() {
-            if (this.item && this.item.favicon && this.item.favicon.full_url) {
-                return this.item.favicon.full_url;
-            }
-            return this.autoFavicon || null;
+            return this.item && this.item.favicon && this.item.favicon.full_url
+                ? this.item.favicon.full_url
+                : null;
         },
         initials() {
             return (this.item.title || "?")
@@ -192,18 +189,6 @@ export default {
                 timestamps: true,
             });
             this.item = data || null;
-            if (this.item && this.item.url && !this.faviconUrl && !this.faviconFailed) {
-                try {
-                    const result = await api.getFavicon(this.item.url);
-                    if (result && result.favicon_url) {
-                        this.autoFavicon = result.favicon_url;
-                    } else {
-                        this.faviconFailed = true;
-                    }
-                } catch (error) {
-                    this.faviconFailed = true;
-                }
-            }
         } catch (error) {
             console.error("Failed to load link detail:", error);
             this.item = null;
@@ -213,8 +198,7 @@ export default {
     },
     methods: {
         onFaviconError() {
-            this.autoFavicon = "";
-            this.faviconFailed = true;
+            // Broken stored favicon: the page falls back to the initials block.
         },
     },
 };

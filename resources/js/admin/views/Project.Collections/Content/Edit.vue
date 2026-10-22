@@ -1292,16 +1292,33 @@ export default {
             // Set loading state
             this.favicons[cacheKey] = 'loading';
 
-            axios.get('/api/getFavicon', { params: { url }, baseURL: '', skipAuthRedirect: true }).then((response) => {
-                if (response.data.success && response.data.data.favicon_url) {
-                    this.favicons[cacheKey] = response.data.data.favicon_url;
-                    sessionStorage.setItem(storageKey, response.data.data.favicon_url);
-                } else {
+            const faviconField = this.collection && this.collection.fields
+                ? this.collection.fields.find(
+                    (f) => f.type === 'media' && ['favicon', 'icon'].includes(f.name)
+                  )
+                : null;
+
+            axios
+                .post(
+                    "projects/" + this.$route.params.project_id + "/collections/" + this.$route.params.col_id + "/" + this.$route.params.content_id + "/fetch-favicon",
+                    { url },
+                    { skipAuthRedirect: true }
+                )
+                .then((response) => {
+                    const data = response.data || {};
+                    if (data.favicon_url) {
+                        this.favicons[cacheKey] = data.favicon_url;
+                        sessionStorage.setItem(storageKey, data.favicon_url);
+                    } else {
+                        this.favicons[cacheKey] = null;
+                    }
+                    if (data.media_id && faviconField) {
+                        this.insertFiles([data.media_id], faviconField.name, false);
+                    }
+                })
+                .catch(() => {
                     this.favicons[cacheKey] = null;
-                }
-            }).catch(() => {
-                this.favicons[cacheKey] = null;
-            });
+                });
         },
 
         clearFieldError(fieldKey) {

@@ -81,8 +81,6 @@
 </template>
 
 <script>
-import { api } from "../../../api";
-
 export default {
     name: "LinkCard",
     props: {
@@ -112,10 +110,9 @@ export default {
             return `${this.pathPrefix}/link/${this.item.id}`;
         },
         faviconUrl() {
-            if (this.item.favicon && this.item.favicon.full_url) {
-                return this.item.favicon.full_url;
-            }
-            return this.autoFavicon || null;
+            return this.item.favicon && this.item.favicon.full_url
+                ? this.item.favicon.full_url
+                : null;
         },
         initials() {
             return (this.item.title || "?")
@@ -131,31 +128,9 @@ export default {
                 .replace(/\/$/, "");
         },
     },
-    data() {
-        return {
-            autoFavicon: "",
-            faviconFailed: false,
-        };
-    },
-    async mounted() {
-        // Auto-fetch the site favicon when the link has no custom icon.
-        if (!this.faviconUrl && this.item.url && !this.faviconFailed) {
-            try {
-                const result = await api.getFavicon(this.item.url);
-                if (result && result.favicon_url) {
-                    this.autoFavicon = result.favicon_url;
-                } else {
-                    this.faviconFailed = true;
-                }
-            } catch (error) {
-                this.faviconFailed = true;
-            }
-        }
-    },
     methods: {
         onFaviconError() {
-            this.autoFavicon = "";
-            this.faviconFailed = true;
+            // Broken favicon image: the card falls back to the initials block.
         },
     },
 };

@@ -70,8 +70,9 @@
                         :class="!section.category.color ? 'bg-gradient-to-b from-indigo-500 to-purple-500' : ''"
                     ></span>
                     <h2 class="text-xl font-bold tracking-tight text-gray-900">{{ section.category.title }}</h2>
-                    <span class="text-xs text-gray-400">{{ section.items.length }}</span>
+                    <span class="text-xs text-gray-400">{{ section.hasMore ? section.total + "+" : section.total }}</span>
                     <router-link
+                        v-if="section.hasMore"
                         :to="`${pathPrefix}/category/${section.category.slug}`"
                         class="ml-auto inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium text-indigo-600 transition hover:gap-1.5 hover:opacity-70"
                     >
@@ -149,13 +150,22 @@ export default {
             return this.visibleLinks.filter((l) => l.featured);
         },
         sections() {
+            // Each category shows at most 12 links on the home page; the rest is
+            // reachable via the "More" link that opens the full category page.
+            const MAX_LINKS_PER_CATEGORY = 12;
+
             return this.categories
-                .map((category) => ({
-                    category,
-                    items: this.visibleLinks.filter(
+                .map((category) => {
+                    const all = this.visibleLinks.filter(
                         (l) => l.category && l.category.id === category.id
-                    ),
-                }))
+                    );
+                    return {
+                        category,
+                        total: all.length,
+                        items: all.slice(0, MAX_LINKS_PER_CATEGORY),
+                        hasMore: all.length > MAX_LINKS_PER_CATEGORY,
+                    };
+                })
                 .filter((s) => s.items.length);
         },
     },
@@ -169,8 +179,12 @@ export default {
 
             const [project, categories, links, globals] = await Promise.all([
                 api.getProject("navigation").catch(() => null),
-                api.getNavigationCategories({ _skipLocale: true, sort: "weight:asc", limit: 200 }),
-                api.getNavigationLinks({ _skipLocale: true, sort: "weight:asc", limit: 500 }),
+                this.fetchAllPages((params) =>
+                    api.getNavigationCategories({ _skipLocale: true, sort: "weight:asc", ...params })
+                ),
+                this.fetchAllPages((params) =>
+                    api.getNavigationLinks({ _skipLocale: true, sort: "weight:asc", ...params })
+                ),
                 api.getNavigationGlobals({ _skipLocale: true, limit: 50 }).catch(() => []),
             ]);
 
@@ -191,6 +205,23 @@ export default {
         }
     },
     methods: {
+        // The backend list API caps a single response at 100 items (MAX_PAGE_LIMIT);
+        // fetch page by page so the home page never misses categories whose links
+        // fall beyond the first batch.
+        async fetchAllPages(loader) {
+            const PAGE_SIZE = 100;
+            const all = [];
+            let offset = 0;
+            for (;;) {
+                const batch = (await loader({ offset, limit: PAGE_SIZE })) || [];
+                all.push(...batch);
+                if (batch.length < PAGE_SIZE) {
+                    break;
+                }
+                offset += PAGE_SIZE;
+            }
+            return all;
+        },
         applyTheme(project) {
             if (!project || !project.theme) {
                 return;
@@ -215,7 +246,8 @@ export default {
             if (q.length < 2) {
                 return;
             }
-            this.$router.push({ path: "/search", query: { q } });
+            // Navigation site search: only search the navigation links.
+            this.$router.push({ path: "/navigation/search", query: { q } });
         },
     },
 };

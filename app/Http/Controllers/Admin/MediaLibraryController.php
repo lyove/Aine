@@ -9,8 +9,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Models\Project;
 use App\Models\Setting;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -288,6 +290,89 @@ class MediaLibraryController extends Controller
         AuditLogger::log('upload', 'media', $new_file->id, $new_file->name, null, $project->id);
 
         return $new_file;
+    }
+
+    /**
+     * Download a remote image and persist it as a Media record.
+     * Returns the Media model, or null when the payload is not a supported image.
+     *
+     * @param \App\Models\Project $project
+     * @param string $url
+     * @return \App\Models\Media|null
+     */
+    public function storeRemoteImage(Project $project, string $url): ?Media
+    {
+        try {
+            $client = new Client([
+                'timeout' => 8,
+                'connect_timeout' => 5,
+                'allow_redirects' => ['max' => 3, 'strict' => true],
+                'http_errors' => false,
+                'headers' => ['User-Agent' => 'Aine-Favicon-Bot/1.0'],
+            ]);
+
+            $response = $client->get($url);
+            if ($response->getStatusCode() >= 400) {
+                return null;
+            }
+
+            $body = $response->getBody()->getContents();
+            if ($body === '' || strlen($body) > 2097152) { // 2MB cap
+                return null;
+            }
+
+            $extension = $this->extensionFromRemote($url, strtolower($response->getHeaderLine('Content-Type')));
+            if (! in_array($extension, ['ico', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'], true)) {
+                return null;
+            }
+
+            $tmpPath = tempnam(sys_get_temp_dir(), 'ainefav_');
+            if ($tmpPath === false) {
+                return null;
+            }
+
+            try {
+                file_put_contents($tmpPath, $body);
+                $file = new UploadedFile($tmpPath, 'favicon.' . $extension, $response->getHeaderLine('Content-Type'), null, true);
+
+                return $this->storeUploadedFile($project, $file);
+            } finally {
+                if (file_exists($tmpPath)) {
+                    @unlink($tmpPath);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::debug('Favicon remote store failed', ['url' => $url, 'error' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Pick a safe file extension for a remote favicon image.
+     * SVG and other non-raster formats are rejected.
+     */
+    private function extensionFromRemote(string $url, string $contentType): string
+    {
+        $map = [
+            'image/x-icon' => 'ico',
+            'image/vnd.microsoft.icon' => 'ico',
+            'image/png' => 'png',
+            'image/jpeg' => 'jpg',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            'image/bmp' => 'bmp',
+        ];
+
+        foreach ($map as $type => $ext) {
+            if (str_contains($contentType, $type)) {
+                return $ext;
+            }
+        }
+
+        $pathExt = strtolower(pathinfo(parse_url($url, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION));
+
+        return in_array($pathExt, ['ico', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'], true) ? $pathExt : '';
     }
 
     /**

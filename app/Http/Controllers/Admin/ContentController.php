@@ -1078,6 +1078,80 @@ class ContentController extends Controller
         ], 200);
     }
 
+    /**
+     * Fetch and persist the favicon of a single link.
+     * Runs once per link: when an icon is already stored it is returned as-is
+     * without re-fetching. The icon is downloaded into the media library and
+     * its media id is written to the link's `favicon` meta field, so the
+     * public frontend only reads the stored value.
+     */
+    public function fetchFavicon($project_id, $collection_id, $content_id)
+    {
+        $project = Project::findOrFail($project_id);
+        $this->authorizeEditor($project);
+
+        $content = Content::with('meta')
+            ->where('project_id', $project->id)
+            ->where('collection_id', $collection_id)
+            ->where('id', $content_id)->firstOrFail();
+
+        $meta = $content->meta->pluck('value', 'field_name');
+        $url = $meta->get('url');
+        if (empty($url)) {
+            return response(['message' => 'Link has no URL'], 422);
+        }
+
+        // Only persist into the favicon meta when the collection actually has
+        // a media field named favicon/icon (the navigation Links template).
+        $collection = Collection::find($content->collection_id);
+        $hasFaviconField = $collection && $collection->fields->contains(
+            fn ($field) => $field->type === 'media' && in_array($field->name, ['favicon', 'icon'], true)
+        );
+
+        $faviconMeta = $content->meta->firstWhere('field_name', 'favicon');
+        $existingId = $faviconMeta && is_numeric($faviconMeta->value) ? (int) $faviconMeta->value : null;
+
+        if ($existingId) {
+            $media = Media::where('project_id', $project->id)->where('id', $existingId)->first();
+            if ($media) {
+                return response([
+                    'favicon_url' => $media->full_url,
+                    'source'      => 'stored',
+                    'media_id'    => $media->id,
+                ], 200);
+            }
+        }
+
+        $result = app(\App\Services\FaviconService::class)->fetch($url);
+        $faviconUrl = $result['favicon_url'] ?? '';
+        if ($faviconUrl === '' || str_starts_with($faviconUrl, 'data:')) {
+            return response(['favicon_url' => '', 'source' => 'none'], 200);
+        }
+
+        $media = app(MediaLibraryController::class)->storeRemoteImage($project, $faviconUrl);
+        if ($media) {
+            if ($hasFaviconField) {
+                ContentMeta::updateOrCreate(
+                    [
+                        'content_id'    => $content->id,
+                        'field_name'    => 'favicon',
+                        'project_id'    => $content->project_id,
+                        'collection_id' => $content->collection_id,
+                    ],
+                    ['value' => (string) $media->id]
+                );
+            }
+
+            return response([
+                'favicon_url' => $media->full_url,
+                'source'      => 'fetched',
+                'media_id'    => $media->id,
+            ], 200);
+        }
+
+        return response(['favicon_url' => '', 'source' => 'failed'], 200);
+    }
+
     public function moveToTrash($project_id, $collection_id, $content_id)
     {
         $project = Project::findOrFail($project_id);

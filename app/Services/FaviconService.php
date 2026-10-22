@@ -16,7 +16,7 @@ class FaviconService
 {
     private const CACHE_TTL_SUCCESS = 86400; // 24h
     private const CACHE_TTL_FAILURE = 3600;  // 1h
-    private const TIMEOUT = 10;
+    private const TIMEOUT = 5;
     private const MAX_REDIRECTS = 3;
     private const MAX_FAVICON_SIZE = 524288; // 512KB
 
@@ -74,7 +74,7 @@ class FaviconService
     {
         return new Client([
             RequestOptions::TIMEOUT         => self::TIMEOUT,
-            RequestOptions::CONNECT_TIMEOUT => 5,
+            RequestOptions::CONNECT_TIMEOUT => 3,
             RequestOptions::ALLOW_REDIRECTS => [
                 'max'     => self::MAX_REDIRECTS,
                 'strict'  => true,

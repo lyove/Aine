@@ -29,6 +29,7 @@ const NavigationHome = () => import("./views/navigation/Home.vue");
 const NavigationCategoryPage = () => import("./views/navigation/CategoryPage.vue");
 const NavigationTagPage = () => import("./views/navigation/TagPage.vue");
 const NavigationLinkDetail = () => import("./views/navigation/LinkDetailPage.vue");
+const NavigationSearchPage = () => import("./views/navigation/SearchPage.vue");
 
 const SearchPage = () => import("./views/SearchPage.vue");
 const Profile = () => import("./views/Profile.vue");
@@ -77,6 +78,7 @@ const routes = [
 
     // ---- Navigation system (/navigation) ----
     { path: "/navigation", name: "navigation.index", component: NavigationHome, props: { project: "navigation" } },
+    { path: "/navigation/search", name: "navigation.search", component: NavigationSearchPage },
     { path: "/navigation/category/:slug", name: "navigation.category", component: NavigationCategoryPage, props: { project: "navigation" } },
     { path: "/navigation/tag/:slug", name: "navigation.tag", component: NavigationTagPage, props: { project: "navigation" } },
     { path: "/navigation/link/:id", name: "navigation.link", component: NavigationLinkDetail, props: { project: "navigation" } },
