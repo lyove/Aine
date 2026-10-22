@@ -131,7 +131,7 @@ export default {
                 return;
             }
             this.loading = true;
-            const params = { query: q, limit: 20 };
+            const params = { _skipLocale: true, query: q, limit: 20 };
             const calls = [
                 api.searchArticles(params).catch(() => []),
                 api.searchListings(params).catch(() => []),

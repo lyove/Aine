@@ -90,7 +90,7 @@ export default {
             }
             this.loading = true;
             try {
-                const data = await api.searchNavigationLinks({ query: q, limit: 50 });
+                const data = await api.searchNavigationLinks({ _skipLocale: true, query: q, limit: 50 });
                 this.results = Array.isArray(data) ? data : [];
             } catch (e) {
                 this.error = "Search failed, please try again.";
