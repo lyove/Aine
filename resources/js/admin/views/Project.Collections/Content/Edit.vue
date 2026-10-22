@@ -1282,21 +1282,28 @@ export default {
             const cacheKey = index !== undefined ? fieldName + '_' + index : fieldName;
             const storageKey = 'favicon:' + url;
 
-            // Check sessionStorage cache (only success results are cached)
+            const faviconField = this.collection && this.collection.fields
+                ? this.collection.fields.find(
+                    (f) => f.type === 'media' && ['favicon', 'icon'].includes(f.name)
+                  )
+                : null;
+
+            const storedFiles = faviconField && this.newData.files
+                ? this.newData.files[faviconField.name]
+                : null;
+            if (storedFiles && storedFiles.length) {
+                this.favicons[cacheKey] = storedFiles[0].full_url || null;
+                return;
+            }
+
             const cached = sessionStorage.getItem(storageKey);
-            if (cached !== null) {
+            if (cached !== null && !faviconField) {
                 this.favicons[cacheKey] = cached || null;
                 return;
             }
 
             // Set loading state
             this.favicons[cacheKey] = 'loading';
-
-            const faviconField = this.collection && this.collection.fields
-                ? this.collection.fields.find(
-                    (f) => f.type === 'media' && ['favicon', 'icon'].includes(f.name)
-                  )
-                : null;
 
             axios
                 .post(
