@@ -177,44 +177,62 @@ export default {
             await store.loadMe();
             this.user = store.user;
 
-            const [project, categories, links, globals] = await Promise.all([
-                api.getProject("navigation").catch(() => null),
+            const projectPromise = api.getProject("navigation").catch(() => null);
+            const globalsPromise = api.getNavigationGlobals({ _skipLocale: true, limit: 50 }).catch(() => []);
+
+            const [project, categories] = await Promise.all([
+                projectPromise,
                 this.fetchAllPages((params) =>
                     api.getNavigationCategories({ _skipLocale: true, sort: "weight:asc", ...params })
                 ),
-                this.fetchAllPages((params) =>
-                    api.getNavigationLinks({ _skipLocale: true, sort: "weight:asc", ...params })
-                ),
-                api.getNavigationGlobals({ _skipLocale: true, limit: 50 }).catch(() => []),
             ]);
 
             this.applyTheme(project);
             this.categories = categories || [];
-            this.links = links || [];
 
-            const g = (globals || []).reduce((acc, item) => {
-                acc[item.label] = item.value;
-                return acc;
-            }, {});
-            if (g["site-name"]) this.siteName = g["site-name"];
-            if (g["site-description"]) this.siteDescription = g["site-description"];
+            let firstBatchShown = false;
+            const showFirstBatch = () => {
+                if (!firstBatchShown) {
+                    firstBatchShown = true;
+                    this.loading = false;
+                }
+            };
+
+            await this.fetchAllPages(
+                (params) =>
+                    api.getNavigationLinks({ _skipLocale: true, sort: "weight:asc", ...params }),
+                (batch) => {
+                    this.links = this.links.concat(batch);
+                    showFirstBatch();
+                }
+            );
+
+            globalsPromise
+                .then((globals) => {
+                    const g = (globals || []).reduce((acc, item) => {
+                        acc[item.label] = item.value;
+                        return acc;
+                    }, {});
+                    if (g["site-name"]) this.siteName = g["site-name"];
+                    if (g["site-description"]) this.siteDescription = g["site-description"];
+                })
+                .catch(() => {});
         } catch (error) {
             console.error("Failed to load navigation home:", error);
-        } finally {
             this.loading = false;
         }
     },
     methods: {
-        // The backend list API caps a single response at 100 items (MAX_PAGE_LIMIT);
-        // fetch page by page so the home page never misses categories whose links
-        // fall beyond the first batch.
-        async fetchAllPages(loader) {
+        async fetchAllPages(loader, onBatch) {
             const PAGE_SIZE = 100;
             const all = [];
             let offset = 0;
             for (;;) {
                 const batch = (await loader({ offset, limit: PAGE_SIZE })) || [];
                 all.push(...batch);
+                if (onBatch) {
+                    onBatch(batch);
+                }
                 if (batch.length < PAGE_SIZE) {
                     break;
                 }
@@ -246,7 +264,6 @@ export default {
             if (q.length < 2) {
                 return;
             }
-            // Navigation site search: only search the navigation links.
             this.$router.push({ path: "/navigation/search", query: { q } });
         },
     },
