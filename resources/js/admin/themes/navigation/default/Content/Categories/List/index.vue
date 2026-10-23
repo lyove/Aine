@@ -154,7 +154,7 @@ export default {
     const rows = ref([]);
     const loading = ref(true);
     const search = ref("");
-    const each = ref(20);
+    const each = ref(10);
     const currentPage = ref(1);
     const totalCount = ref(0);
 

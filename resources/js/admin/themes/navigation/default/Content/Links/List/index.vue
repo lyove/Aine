@@ -334,7 +334,7 @@ export default {
     const loading = ref(true);
 
     const search = ref("");
-    const each = ref(15);
+    const each = ref(10);
     const currentPage = ref(1);
     const getItems = ref("all");
     const linkFilter = ref("all"); // "all" | "dead" (client-side availability filter)
