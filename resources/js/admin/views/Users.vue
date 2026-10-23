@@ -413,7 +413,7 @@ export default {
         getUsers(page) {
             axios
                 .get("users", {
-                    params: { search: this.search, role: this.role, page, each: 15 },
+                    params: { search: this.search, role: this.role, page, each: 10 },
                 })
                 .then((response) => {
                     const data = response.data.data;
@@ -479,7 +479,7 @@ export default {
         },
 
         refreshCounts() {
-            axios.get("users", { params: { search: this.search, role: this.role, page: 1, each: 15 } })
+            axios.get("users", { params: { search: this.search, role: this.role, page: 1, each: 10 } })
                 .then((response) => {
                     const data = response.data.data;
                     this.users = data.data || [];

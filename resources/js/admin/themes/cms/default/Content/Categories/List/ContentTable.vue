@@ -539,7 +539,7 @@ export default {
     collection_id: { type: [Number, String], required: true },
     isReadonly: { type: Boolean, default: false },
     isComments: { type: Boolean, default: false },
-    each: { type: Number, default: 15 },
+    each: { type: Number, default: 10 },
     canProject: { type: Function, required: true },
     form_count: { type: Number, default: 0 },
     selected: { type: Array, default: () => [] },

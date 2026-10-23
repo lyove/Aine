@@ -101,7 +101,7 @@
                 :disabled="loading || currentPage <= 1"
                 @click="reload(currentPage - 1)"
               ><i class="fa fa-chevron-left"></i></button>
-              <template v-for="page in visiblePages" :key="page">
+              <template v-for="(page, i) in visiblePages" :key="page === '...' ? 'ellipsis-' + i : page">
                 <span v-if="page === '...'" class="px-1.5 text-sm text-gray-400">…</span>
                 <button
                   v-else

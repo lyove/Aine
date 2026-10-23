@@ -35,8 +35,9 @@
               @change="reload(1)"
             >
               <option :value="10">10 / {{ __('page') }}</option>
-              <option :value="15">15 / {{ __('page') }}</option>
-              <option :value="25">25 / {{ __('page') }}</option>
+              <option :value="20">20 / {{ __('page') }}</option>
+              <option :value="30">30 / {{ __('page') }}</option>
+              <option :value="40">40 / {{ __('page') }}</option>
               <option :value="50">50 / {{ __('page') }}</option>
             </select>
 
@@ -278,7 +279,7 @@
                 :disabled="loading || currentPage <= 1"
                 @click="reload(currentPage - 1)"
               ><i class="fa fa-chevron-left"></i></button>
-              <template v-for="page in visiblePages" :key="page">
+              <template v-for="(page, i) in visiblePages" :key="page === '...' ? 'ellipsis-' + i : page">
                 <span v-if="page === '...'" class="px-1.5 text-sm text-gray-400">…</span>
                 <button
                   v-else

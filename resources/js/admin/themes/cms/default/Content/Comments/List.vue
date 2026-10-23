@@ -787,7 +787,7 @@ import UiDropdown from "@/components/Dropdown.vue";
 function useCommentList(options = {}) {
   const {
     collectionId = () => undefined,
-    eachProp = 15,
+    eachProp = 10,
     relationSelect = () => false,
     relationType = () => undefined,
     onAddSelected = null,
@@ -1312,7 +1312,7 @@ export default {
     },
     eachProp: {
       type: Number,
-      default: 15,
+      default: 10,
     },
     relation_type: {
       type: Number,

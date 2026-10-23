@@ -538,7 +538,7 @@ function parseLocales(value) {
 /**
  * @param {Object} options
  * @param {Function} [options.collectionId] getter returning the current collection id (number|undefined)
- * @param {number} [options.eachProp] items per page (default 15)
+ * @param {number} [options.eachProp] items per page (default 10)
  * @param {Function} [options.relationSelect] getter indicating relation-select mode
  * @param {Function} [options.relationType] getter for the relation type (==1 makes row selection single-choice)
  * @param {Function} [options.onAddSelected] callback when relation selection completes (replaces $emit('addSelected'))
@@ -548,7 +548,7 @@ function parseLocales(value) {
 function useContentList(options = {}) {
     const {
         collectionId = () => undefined,
-        eachProp = 15,
+        eachProp = 10,
         relationSelect = () => false,
         relationType = () => undefined,
         onAddSelected = null,
@@ -1262,7 +1262,7 @@ export default {
         const route = useRoute();
         const cl = useContentList({
             collectionId: () => (route.params.col_id !== undefined ? parseInt(route.params.col_id) : undefined),
-            eachProp: 15,
+            eachProp: 10,
             enableCollectionWatch: true,
             initialProject: () => useAdminStore().currentProject || {},
         });
