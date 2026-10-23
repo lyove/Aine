@@ -139,7 +139,6 @@ class ProjectsController extends Controller
         if ($templateId && $template = ProjectTemplates::get($templateId)) {
             ProjectTemplates::apply($project, $template);
 
-            // Auto-assign admin theme: 该模板家族的默认主题
             $templateModel = ProjectTemplate::find($templateId);
             if ($templateModel && $templateModel->slug) {
                 // Find the matching theme by template family + default flag
@@ -147,6 +146,11 @@ class ProjectsController extends Controller
                     ->where('is_active', true)
                     ->orderByDesc('is_default')
                     ->first();
+                if (!$theme) {
+                    $theme = \App\Models\ProjectTheme::where('is_system', true)
+                        ->where('is_active', true)
+                        ->first();
+                }
                 $project->update([
                     'theme_id' => $theme?->id,
                 ]);

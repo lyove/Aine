@@ -14,6 +14,7 @@ class ProjectTheme extends Model
         'description',
         'template_slug',
         'is_default',
+        'is_system',
         'version',
         'author',
         'icon',
@@ -29,6 +30,7 @@ class ProjectTheme extends Model
         'view_overrides' => 'array',
         'is_active' => 'boolean',
         'is_default' => 'boolean',
+        'is_system' => 'boolean',
     ];
 
     /**

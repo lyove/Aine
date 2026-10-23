@@ -17,7 +17,6 @@ class ThemesController extends Controller
     /**
      * List available themes.
      * Auto-syncs from filesystem if no themes exist.
-     * 支持 ?project_id= 过滤：只返回该项目的模板家族主题（主题严格归属 project）。
      */
     public function index(Request $request)
     {
@@ -161,10 +160,18 @@ class ThemesController extends Controller
 
     /**
      * Toggle a theme's active status (super admin only).
+     * The system default theme cannot be deactivated.
      */
     public function toggleStatus(int $id)
     {
         $theme = ProjectTheme::findOrFail($id);
+
+        if ($theme->is_system && $theme->is_active) {
+            return response()->json([
+                'message' => 'The system default theme cannot be deactivated.',
+            ], 422);
+        }
+
         $theme->update(['is_active' => !$theme->is_active]);
 
         return response()->json([

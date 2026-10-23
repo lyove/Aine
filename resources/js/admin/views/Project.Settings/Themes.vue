@@ -46,19 +46,22 @@
                                     class="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl"
                                     :style="{ backgroundColor: getThemeColor(theme) }"
                                 >
-                                    <i :class="theme.icon || 'fa-palette'"></i>
+                                    <i :class="theme.is_system ? 'fa-window-restore' : (theme.icon || 'fa-palette')"></i>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="text-lg font-semibold text-gray-900 truncate">{{ __(theme.name) }}</h3>
-                                    <p class="text-sm text-gray-500 mt-0.5">v{{ theme.version }} <span v-if="theme.author">{{ __('by {themeAuthor}', { themeAuthor: theme.author }) }}</span></p>
+                                    <h3 class="text-lg font-semibold text-gray-900 truncate">{{ theme.is_system ? __('System Default UI') : __(theme.name) }}</h3>
+                                    <p class="text-sm text-gray-500 mt-0.5">
+                                        <template v-if="theme.is_system">{{ __('Built-in') }}</template>
+                                        <template v-else>v{{ theme.version }} <span v-if="theme.author">{{ __('by {themeAuthor}', { themeAuthor: theme.author }) }}</span></template>
+                                    </p>
                                 </div>
                             </div>
 
                             <!-- Description -->
-                            <p class="text-sm text-gray-600 mt-3 line-clamp-2">{{ __(theme.description) }}</p>
+                            <p class="text-sm text-gray-600 mt-3 line-clamp-2">{{ theme.is_system ? __('Use the built-in admin interface without any theme overrides.') : __(theme.description) }}</p>
 
                             <!-- Color Preview -->
-                            <div class="flex items-center gap-2 mt-4">
+                            <div v-if="getThemeColors(theme).length > 0" class="flex items-center gap-2 mt-4">
                                 <div
                                     v-for="(color, index) in getThemeColors(theme)"
                                     :key="index"
@@ -85,7 +88,7 @@
                     </div>
 
                     <!-- Design Token Customization -->
-                    <div v-if="!loading && selectedTheme && isActive(selectedTheme)" class="mt-8 bg-white rounded-xl border border-gray-200 p-6">
+                    <div v-if="!loading && selectedTheme && isActive(selectedTheme) && !selectedTheme.is_system" class="mt-8 bg-white rounded-xl border border-gray-200 p-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">{{ __('Customize Colors') }}</h3>
                         <p class="text-sm text-gray-500 mb-4">{{ __('Override the default design tokens for this project.') }}</p>
 
@@ -171,7 +174,7 @@ export default {
             this.loading = true;
             try {
                 const store = useAdminStore();
-                // 只拉取当前项目的模板家族主题（主题严格归属 project）
+                // Only fetch the template-family themes for the current project
                 this.themes = await fetchAvailableThemes(store.currentProject?.id);
                 // Find the currently active theme
                 const currentSlug = store.currentProject?.theme?.slug;
@@ -208,10 +211,15 @@ export default {
 
         isActive(theme) {
             const store = useAdminStore();
-            return store.currentProject?.theme?.slug === theme.slug;
+            const currentSlug = store.currentProject?.theme?.slug;
+            if (theme.is_system) {
+                return !currentSlug || currentSlug === theme.slug;
+            }
+            return currentSlug === theme.slug;
         },
 
         getThemeColor(theme) {
+            if (theme.is_system) return '#64748b';
             const tokens = theme.design_tokens || {};
             return tokens['--theme-color-primary'] || '#6366f1';
         },

@@ -40,6 +40,12 @@ class ThemeService
     private const THEMES_DIR = 'themes';
 
     /**
+     * Slug of the "System Default" sentinel theme row. This row is not backed
+     * by a package on disk; it represents the built-in admin UI (default views).
+     */
+    public const SYSTEM_THEME_SLUG = 'system-default';
+
+    /**
      * Scan the filesystem for theme packages and sync them to the database.
      * Returns the list of themes that were discovered/updated.
      *
@@ -107,10 +113,51 @@ class ThemeService
 
         // Mark themes that no longer exist on disk as inactive
         ProjectTheme::whereNotIn('slug', array_keys($discovered))
+            ->where('is_system', false)
             ->where('is_active', true)
             ->update(['is_active' => false]);
 
+        // The sentinel is not backed by a package on disk — always (re)ensure it.
+        $this->ensureSystemTheme();
+
         return $discovered;
+    }
+
+    /**
+     * Ensure the "System Default" sentinel theme row exists in the database.
+     * It is not backed by a package on disk, so it can never be discovered;
+     * if it was deleted (or deactivated), bring it back.
+     */
+    public function ensureSystemTheme(): ProjectTheme
+    {
+        $theme = ProjectTheme::where('slug', self::SYSTEM_THEME_SLUG)->first();
+
+        if ($theme) {
+            if (!$theme->is_active || !$theme->is_system) {
+                $theme->update([
+                    'is_active' => true,
+                    'is_system' => true,
+                ]);
+            }
+            return $theme;
+        }
+
+        return ProjectTheme::create([
+            'slug' => self::SYSTEM_THEME_SLUG,
+            'template_slug' => null,
+            'is_default' => false,
+            'is_system' => true,
+            'name' => 'System Default',
+            'description' => 'Built-in admin interface with no theme overrides.',
+            'version' => '1.0.0',
+            'author' => 'Aine',
+            'icon' => 'fa-window-restore',
+            'preview_image' => null,
+            'asset_path' => self::THEMES_DIR . '/system-default',
+            'design_tokens' => null,
+            'view_overrides' => null,
+            'is_active' => true,
+        ]);
     }
 
     /**
@@ -156,7 +203,13 @@ class ThemeService
         $theme = $project->theme;
 
         if (!$theme || !$theme->is_active) {
-            return null;
+            $theme = ProjectTheme::where('slug', self::SYSTEM_THEME_SLUG)
+                ->where('is_active', true)
+                ->first();
+
+            if (!$theme) {
+                return null;
+            }
         }
 
         return [
@@ -175,11 +228,15 @@ class ThemeService
      */
     public function getAvailableThemes(?Project $project = null): array
     {
+        $this->ensureSystemTheme();
+
         $query = ProjectTheme::active();
 
-        // 主题严格归属模板（项目家族）：传入项目时只返回该项目家族的主题
         if ($project) {
-            $query->where('template_slug', $project->slug);
+            $query->where(function ($q) use ($project) {
+                $q->where('template_slug', $project->slug)
+                    ->orWhere('is_system', true);
+            });
         }
 
         return $query->get()
@@ -194,6 +251,7 @@ class ThemeService
                 'preview_image' => $theme->preview_image,
                 'template_slug' => $theme->template_slug,
                 'is_default' => (bool) $theme->is_default,
+                'is_system' => (bool) $theme->is_system,
                 'design_tokens' => $theme->design_tokens,
                 'projects_count' => $theme->projects()->count(),
             ])
@@ -202,7 +260,6 @@ class ThemeService
 
     /**
      * Apply a theme to a project.
-     * 归属校验：主题必须属于该项目的模板家族，否则拒绝（防止勾选其他项目主题导致视图错乱）。
      */
     public function applyTheme(Project $project, int $themeId): bool
     {
@@ -212,8 +269,7 @@ class ThemeService
             return false;
         }
 
-        // 归属校验：主题的 template_slug 必须等于项目的 slug
-        if ($theme->template_slug !== $project->slug) {
+        if (!$theme->is_system && $theme->template_slug !== $project->slug) {
             return false;
         }
 

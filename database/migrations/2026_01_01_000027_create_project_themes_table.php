@@ -2,16 +2,20 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private const SENTINEL_SLUG = 'system-default';
+
     public function up(): void
     {
         Schema::create('project_themes', function (Blueprint $table) {
             $table->id();
             $table->string('slug')->unique();
             $table->string('template_slug')->nullable()->index();
+            $table->boolean('is_system')->default(false);  // Built-in system default theme, not backed by a package on disk
             $table->boolean('is_default')->default(false);
             $table->string('name');
             $table->text('description')->nullable();
@@ -32,6 +36,29 @@ return new class extends Migration
             $table->foreign('theme_id')->references('id')->on('project_themes')->nullOnDelete();
             $table->json('theme_config')->nullable();
         });
+
+        $id = DB::table('project_themes')->insertGetId([
+            'slug' => self::SENTINEL_SLUG,
+            'template_slug' => null,
+            'is_default' => false,
+            'is_system' => true,
+            'name' => 'System Default',
+            'description' => 'Built-in admin interface with no theme overrides.',
+            'version' => '1.0.0',
+            'author' => 'Aine',
+            'icon' => 'fa-window-restore',
+            'preview_image' => null,
+            'asset_path' => 'themes/system-default',
+            'design_tokens' => null,
+            'view_overrides' => null,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('projects')
+            ->whereNull('theme_id')
+            ->update(['theme_id' => $id]);
     }
 
     public function down(): void
