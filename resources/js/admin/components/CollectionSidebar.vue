@@ -54,6 +54,7 @@
                 @end="sortCollections"
                 v-bind="dragOptions"
                 class="_drag-box"
+                v-if="project && project.collections"
             >
                 <transition-group type="transition" class="_trans-group" :css="false">
                     <div
@@ -102,7 +103,7 @@
                 </transition-group>
             </VueDraggable>
 
-            <div v-if="typeof project.id !== 'undefined'" class="mt-3 pt-3 border-t border-gray-100">
+            <div v-if="project && typeof project.id !== 'undefined'" class="mt-3 pt-3 border-t border-gray-100">
                 <router-link
                     :to="{ name: 'projects.media_library', params: { project_id: project.id } }"
                     :active-class="'bg-blue-50 text-blue-700 font-semibold'"
@@ -303,7 +304,7 @@ export default {
             };
         },
         filterSearch() {
-            if (this.project.collections !== undefined) {
+            if (this.project && this.project.collections !== undefined) {
                 return this.project.collections.filter((collection) => {
                     return (
                         !this.searchCollection ||

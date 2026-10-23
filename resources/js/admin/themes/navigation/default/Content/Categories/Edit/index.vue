@@ -118,8 +118,8 @@ export default {
     const cid = route.params.col_id;
     const contentId = route.params.content_id;
 
-    const project = ref(null);
-    const collection = ref({ name: "Categories" });
+    const project = ref(store.currentProject || {});
+    const collection = ref(store.currentCollection || { name: "Categories" });
     const saving = ref(false);
 
     const form = reactive({
@@ -141,8 +141,8 @@ export default {
 
     async function loadEntry() {
       const { data } = await axios.get(`projects/${pid}/collections/${cid}/${contentId}/edit`);
-      project.value = data.project;
-      collection.value = data.collection || { name: "Categories" };
+      if (!project.value?.id) project.value = data.project;
+      if (!collection.value?.id) collection.value = data.collection || { name: "Categories" };
       entryMeta.value = (data.content && data.content.meta) || [];
       form.title = metaValue("title") || "";
       form.slug = metaValue("slug") || "";

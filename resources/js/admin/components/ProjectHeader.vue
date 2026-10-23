@@ -8,12 +8,12 @@
         </div>
         <div class="px-4 py-2">
             <div class="text-xl font-bold">
-                {{ __('Project:') }} {{ project.name }}
+                {{ __('Project:') }} {{ project ? project.name : '' }}
                 <span v-if="isReadonly" class="text-xs font-semibold uppercase tracking-wide text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full ml-2">
                     {{ __('Read Only') }}
                 </span>
             </div>
-            <div class="text-sm">{{ project.description || __('Project description') }}</div>
+            <div class="text-sm">{{ project ? project.description : '' }}</div>
         </div>
     </div>
 </template>

@@ -315,8 +315,8 @@ export default {
     const pid = route.params.project_id;
     const cid = route.params.col_id;
 
-    const project = ref(null);
-    const collection = ref(null);
+    const project = ref(store.currentProject || {});
+    const collection = ref(store.currentCollection || { name: "Links" });
     const content = ref({ data: [], total: 0 });
     const rows = ref([]);
     const loading = ref(true);
@@ -499,8 +499,8 @@ export default {
             getItems: getItems.value,
           },
         });
-        project.value = data.project;
-        collection.value = data.collection;
+        if (!project.value?.id) project.value = data.project;
+        if (!collection.value?.id) collection.value = data.collection;
         content.value = data.content;
         totalCount.value = data.totalCount || 0;
         publishedCount.value = data.published || 0;

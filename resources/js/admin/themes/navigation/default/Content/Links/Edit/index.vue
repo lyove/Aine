@@ -295,8 +295,8 @@ export default {
     const cid = route.params.col_id;
     const contentId = route.params.content_id;
 
-    const project = ref(null);
-    const collection = ref({ name: "Links", fields: [] });
+    const project = ref(store.currentProject || {});
+    const collection = ref(store.currentCollection || { name: "Links", fields: [] });
     const categories = ref([]);
     const tags = ref([]);
     const selectedTags = ref([]);
@@ -365,8 +365,8 @@ export default {
 
     async function loadEntry() {
       const { data } = await axios.get(`projects/${pid}/collections/${cid}/${contentId}/edit`);
-      project.value = data.project;
-      collection.value = data.collection || { name: "Links", fields: [] };
+      if (!project.value?.id) project.value = data.project;
+      if (!collection.value?.id) collection.value = data.collection || { name: "Links", fields: [] };
       entryMeta.value = (data.content && data.content.meta) || [];
       await loadOptions();
 

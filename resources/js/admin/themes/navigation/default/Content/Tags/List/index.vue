@@ -120,14 +120,13 @@ export default {
     const pid = route.params.project_id;
     const cid = route.params.col_id;
 
-    const project = ref(null);
-    const collection = ref({ name: "Tags" });
+    const project = ref(store.currentProject || {});
+    const collection = ref(store.currentCollection || { name: "Tags" });
     const rows = ref([]);
     const loading = ref(true);
     const search = ref("");
     const totalCount = ref(0);
 
-    // 预设胶囊配色（id 取模轮换）
     const PILL_COLORS = ["#4f46e5", "#dc2626", "#16a34a", "#d97706", "#0891b2", "#7c3aed", "#db2777", "#65a30d"];
 
     const canEdit = computed(() => {
@@ -164,8 +163,8 @@ export default {
         const { data } = await axios.get(`projects/${pid}/collections/${cid}/entries`, {
           params: { each: 200, getItems: "all" },
         });
-        project.value = data.project;
-        collection.value = data.collection || { name: "Tags" };
+        if (!project.value?.id) project.value = data.project;
+        if (!collection.value?.id) collection.value = data.collection || { name: "Tags" };
         totalCount.value = data.totalCount || 0;
         const tags = (data.content.data || []).map((row) => ({
           id: row.id,

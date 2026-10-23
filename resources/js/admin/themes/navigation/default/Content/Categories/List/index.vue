@@ -136,8 +136,8 @@ export default {
     const pid = route.params.project_id;
     const cid = route.params.col_id;
 
-    const project = ref(null);
-    const collection = ref({ name: "Categories" });
+    const project = ref(store.currentProject || {});
+    const collection = ref(store.currentCollection || { name: "Categories" });
     const rows = ref([]);
     const loading = ref(true);
     const search = ref("");
@@ -175,8 +175,8 @@ export default {
             getItems: "all",
           },
         });
-        project.value = data.project;
-        collection.value = data.collection || { name: "Categories" };
+        if (!project.value?.id) project.value = data.project;
+        if (!collection.value?.id) collection.value = data.collection || { name: "Categories" };
         totalCount.value = data.totalCount || 0;
         rows.value = (data.content.data || []).map((row) => ({
           id: row.id,

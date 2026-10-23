@@ -64,6 +64,7 @@ import axios from "axios";
 import { __ } from "@/admin/translations/engine";
 import Swal from "sweetalert2";
 import { useToast } from "vue-toastification";
+import { useAdminStore } from "@/admin/store";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
@@ -74,11 +75,12 @@ export default {
     const toast = useToast();
     const route = useRoute();
     const router = useRouter();
+    const store = useAdminStore();
     const pid = route.params.project_id;
     const cid = route.params.col_id;
 
-    const project = ref(null);
-    const collection = ref({ name: "Tags" });
+    const project = ref(store.currentProject || {});
+    const collection = ref(store.currentCollection || { name: "Tags" });
     const saving = ref(false);
 
     const form = reactive({
@@ -117,8 +119,8 @@ export default {
     onMounted(async () => {
       try {
         const { data } = await axios.get(`projects/${pid}/collections/${cid}/new`);
-        project.value = data.project;
-        collection.value = data.collection || { name: "Tags" };
+        if (!project.value?.id) project.value = data.project;
+        if (!collection.value?.id) collection.value = data.collection || { name: "Tags" };
       } catch (e) {
         console.error("load new form failed:", e);
       }
