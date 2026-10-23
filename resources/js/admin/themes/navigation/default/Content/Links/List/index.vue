@@ -278,7 +278,19 @@
                 :disabled="loading || currentPage <= 1"
                 @click="reload(currentPage - 1)"
               ><i class="fa fa-chevron-left"></i></button>
-              <span class="px-2 text-sm text-gray-600">{{ currentPage }} / {{ totalPages }}</span>
+              <template v-for="page in visiblePages" :key="page">
+                <span v-if="page === '...'" class="px-1.5 text-sm text-gray-400">…</span>
+                <button
+                  v-else
+                  type="button"
+                  class="min-w-[32px] rounded-lg border px-2 py-1 text-sm"
+                  :class="page === currentPage
+                    ? 'border-indigo-500 bg-indigo-500 text-white'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40'"
+                  :disabled="loading"
+                  @click="reload(page)"
+                >{{ page }}</button>
+              </template>
               <button
                 type="button"
                 class="rounded-lg border border-gray-200 px-2.5 py-1 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40"
@@ -352,6 +364,28 @@ export default {
       return p && !(p.is_readonly || !p.status) && ["owner", "admin"].includes(p.my_role);
     });
     const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / each.value)));
+
+    // Build the visible page numbers, collapsing long ranges with ellipses
+    const visiblePages = computed(() => {
+      const total = totalPages.value;
+      const current = currentPage.value;
+      const range = 2;
+      const pages = [];
+      if (total <= 7) {
+        for (let i = 1; i <= total; i++) pages.push(i);
+        return pages;
+      }
+      pages.push(1);
+      let start = Math.max(2, current - range);
+      let end = Math.min(total - 1, current + range);
+      if (current - range <= 2) end = Math.min(total - 1, range * 2 + 1);
+      if (current + range >= total - 1) start = Math.max(2, total - range * 2 - 1);
+      if (start > 2) pages.push("...");
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (end < total - 1) pages.push("...");
+      pages.push(total);
+      return pages;
+    });
 
     const statusTabs = [
       { value: "all", label: __("All") },
@@ -634,7 +668,7 @@ export default {
       project, collection, rows, loading,
       search, each, currentPage, getItems, linkFilter,
       totalCount, publishedCount, draftCount, trashedCount,
-      totalPages, statusTabs,
+      totalPages, visiblePages, statusTabs,
       canEdit, canManage,
       initials, clickBehavior, statusLabel, statusClass, availabilityClass,
       categoryName, categoryColor, categoryStyle, tagNames,
