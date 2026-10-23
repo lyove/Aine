@@ -499,10 +499,11 @@ export default {
     }
 
     function flattenRow(row) {
-      const flat = { id: row.id, status: row.status };
+      const flat = { id: row.id };
       (row.meta || []).forEach((m) => {
         flat[m.field_name] = m.value;
       });
+      flat.status = row.deleted_at ? "trashed" : (row.published_at ? "published" : "draft");
       flat._favicon = row.favicon_url_thumb || row.favicon_url || "";
       return flat;
     }
