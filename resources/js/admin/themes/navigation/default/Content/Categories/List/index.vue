@@ -97,7 +97,7 @@
             <div class="flex items-center gap-2">
               <select
                 v-model="each"
-                class="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-600 focus:outline-none"
+                class="rounded-lg border border-gray-300 pl-2 pr-9 py-1 text-sm text-gray-600 focus:outline-none"
                 @change="reload(1)"
               >
                 <option :value="10">10 / {{ __('page') }}</option>
