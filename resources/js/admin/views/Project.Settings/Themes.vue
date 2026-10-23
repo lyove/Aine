@@ -30,11 +30,8 @@
                             ]"
                             @click="selectTheme(theme)"
                         >
-                            <!-- Active / Default Badge -->
+                            <!-- Active Badge -->
                             <div class="absolute top-3 right-3 flex items-center gap-1">
-                                <span v-if="theme.is_default" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                                    <i class="fas fa-star mr-1"></i> {{ __('Default') }}
-                                </span>
                                 <span v-if="isActive(theme)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                     <i class="fas fa-check mr-1"></i> {{ __('Active') }}
                                 </span>

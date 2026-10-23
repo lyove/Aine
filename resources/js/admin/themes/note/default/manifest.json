@@ -41,6 +41,5 @@
         "projects.collections.content.edit.categories": "./Content/Categories/Edit/index.vue",
         "projects.collections.content.edit.tags": "./Content/Tags/Edit/index.vue"
     },
-    "template": "note",
-    "default": true
+    "template": "note"
 }

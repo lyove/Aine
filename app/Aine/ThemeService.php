@@ -89,7 +89,6 @@ class ThemeService
                 $discovered[$slug] = [
                     'slug' => $slug,
                     'template_slug' => $manifest['template'] ?? $templateSlug,
-                    'is_default' => !empty($manifest['default']),
                     'name' => $manifest['name'],
                     'description' => $manifest['description'] ?? null,
                     'version' => $manifest['version'] ?? '1.0.0',
@@ -145,7 +144,6 @@ class ThemeService
         return ProjectTheme::create([
             'slug' => self::SYSTEM_THEME_SLUG,
             'template_slug' => null,
-            'is_default' => false,
             'is_system' => true,
             'name' => 'System Default',
             'description' => 'Built-in admin interface with no theme overrides.',
@@ -250,7 +248,6 @@ class ThemeService
                 'icon' => $theme->icon,
                 'preview_image' => $theme->preview_image,
                 'template_slug' => $theme->template_slug,
-                'is_default' => (bool) $theme->is_default,
                 'is_system' => (bool) $theme->is_system,
                 'design_tokens' => $theme->design_tokens,
                 'projects_count' => $theme->projects()->count(),

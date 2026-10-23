@@ -44,6 +44,5 @@
         "projects.collections.content.edit.locations": "./Content/Locations/Edit/index.vue",
         "projects.collections.content.edit.reviews": "./Content/Reviews/Edit/index.vue"
     },
-    "template": "directory",
-    "default": true
+    "template": "directory"
 }

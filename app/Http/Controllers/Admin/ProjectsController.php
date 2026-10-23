@@ -9,7 +9,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\Project;
-use App\Models\ProjectTemplate;
 use App\Models\ProjectUser;
 use App\Models\User;
 use App\Models\Webhook;
@@ -138,24 +137,14 @@ class ProjectsController extends Controller
         $templateId = (int) $request->get('template_id');
         if ($templateId && $template = ProjectTemplates::get($templateId)) {
             ProjectTemplates::apply($project, $template);
-
-            $templateModel = ProjectTemplate::find($templateId);
-            if ($templateModel && $templateModel->slug) {
-                // Find the matching theme by template family + default flag
-                $theme = \App\Models\ProjectTheme::where('template_slug', $templateModel->slug)
-                    ->where('is_active', true)
-                    ->orderByDesc('is_default')
-                    ->first();
-                if (!$theme) {
-                    $theme = \App\Models\ProjectTheme::where('is_system', true)
-                        ->where('is_active', true)
-                        ->first();
-                }
-                $project->update([
-                    'theme_id' => $theme?->id,
-                ]);
-            }
         }
+
+        // New projects always start on the system default UI (sentinel theme);
+        // a family theme can be selected later in Settings > Themes.
+        $theme = \App\Models\ProjectTheme::where('is_system', true)
+            ->where('is_active', true)
+            ->first();
+        $project->update(['theme_id' => $theme?->id]);
 
         AuditLogger::log('create', 'project', $project->id, $project->name, null, $project->id);
 

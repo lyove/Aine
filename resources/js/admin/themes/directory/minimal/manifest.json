@@ -1,4 +1,3 @@
 {
-    "template": "directory",
-    "default": false
+    "template": "directory"
 }

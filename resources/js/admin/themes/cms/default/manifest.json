@@ -44,6 +44,5 @@
         "projects.collections.content.edit.categories": "./Content/Categories/Edit/index.vue",
         "projects.collections.content.edit.tags": "./Content/Tags/Edit/index.vue"
     },
-    "template": "cms",
-    "default": true
+    "template": "cms"
 }

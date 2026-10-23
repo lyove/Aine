@@ -25,6 +25,5 @@
         "projects.collections.content.new.tags": "./Content/Tags/New/index.vue",
         "projects.collections.content.edit.tags": "./Content/Tags/Edit/index.vue"
     },
-    "template": "navigation",
-    "default": true
+    "template": "navigation"
 }

@@ -16,7 +16,6 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->string('template_slug')->nullable()->index();
             $table->boolean('is_system')->default(false);  // Built-in system default theme, not backed by a package on disk
-            $table->boolean('is_default')->default(false);
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('version')->default('1.0.0');
@@ -40,7 +39,6 @@ return new class extends Migration
         $id = DB::table('project_themes')->insertGetId([
             'slug' => self::SENTINEL_SLUG,
             'template_slug' => null,
-            'is_default' => false,
             'is_system' => true,
             'name' => 'System Default',
             'description' => 'Built-in admin interface with no theme overrides.',

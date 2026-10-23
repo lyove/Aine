@@ -647,6 +647,7 @@ export default {
 </script>
 
 <style scoped>
+/* Fixed actions column: opaque background so underlying cells don't show through on horizontal scroll */
 td.actions-col,
 th.actions-col {
   background-color: #ffffff;
