@@ -761,8 +761,6 @@ import MediaLibrary from "@/admin/components/MediaLibrary.vue";
 import RevisionsModal from "@/admin/components/RevisionsModal.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 
-import List from "../List/index.vue";
-
 import { __ } from '@/admin/translations/engine';
 import localesJson from "@/locales.json";
 import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
@@ -777,7 +775,6 @@ export default {
         UiDropdown,
         MediaLibrary,
         Codemirror,
-        List,
         TinyEditor,
         VDatePicker,
         RevisionsModal,
@@ -787,9 +784,6 @@ export default {
 
     data() {
         return {
-            // Pre-seed from the store (loaded by the router guard before
-            // this page renders) so the shell never flashes blank while the
-            // page's own getEdit() refreshes the data.
             project: useAdminStore().currentProject || {},
             collection: useAdminStore().currentCollection || {},
             content: {},

@@ -27,7 +27,6 @@
     },
     "view_overrides": {
         "projects.index": "./Index/index.vue",
-        "projects.collections.content.list": "./Content/List.vue",
         "projects.collections.content.list.listings": "./Content/Listings/List.vue",
         "projects.collections.content.list.categories": "./Content/Categories/List.vue",
         "projects.collections.content.list.tags": "./Content/Tags/List.vue",

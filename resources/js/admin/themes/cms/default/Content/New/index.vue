@@ -711,8 +711,6 @@ import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import MediaLibrary from "@/admin/components/MediaLibrary.vue";
 
-import List from "../List/index.vue";
-
 import { __ } from '@/admin/translations/engine';
 import localesJson from "@/locales.json";
 import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
@@ -727,7 +725,6 @@ export default {
         UiDropdown,
         MediaLibrary,
         Codemirror,
-        List,
         TinyEditor,
         VDatePicker,
     },
