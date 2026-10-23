@@ -33,7 +33,7 @@
           </div>
         </div>
 
-        <div class="max-w-4xl space-y-5">
+        <div class="w-full space-y-5">
           <!-- Basic info -->
           <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
