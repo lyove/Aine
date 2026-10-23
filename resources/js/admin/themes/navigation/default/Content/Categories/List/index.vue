@@ -92,9 +92,21 @@
           </table>
 
           <!-- Pagination: stays visible during loading, only the table area shows a loading state -->
-          <div v-if="rows.length" class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+          <div v-if="rows.length" class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
             <span class="text-xs text-gray-400">{{ (currentPage - 1) * each + 1 }}–{{ Math.min(currentPage * each, totalCount) }} / {{ totalCount }}</span>
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-2">
+              <select
+                v-model="each"
+                class="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-600 focus:outline-none"
+                @change="reload(1)"
+              >
+                <option :value="10">10 / {{ __('page') }}</option>
+                <option :value="20">20 / {{ __('page') }}</option>
+                <option :value="30">30 / {{ __('page') }}</option>
+                <option :value="40">40 / {{ __('page') }}</option>
+                <option :value="50">50 / {{ __('page') }}</option>
+              </select>
+              <div class="flex items-center gap-1">
               <button
                 type="button"
                 class="rounded-lg border border-gray-200 px-2.5 py-1 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40"
@@ -120,6 +132,7 @@
                 :disabled="loading || currentPage >= totalPages"
                 @click="reload(currentPage + 1)"
               ><i class="fa fa-chevron-right"></i></button>
+              </div>
             </div>
           </div>
         </div>
