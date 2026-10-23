@@ -200,6 +200,7 @@ class ContentController extends Controller
         $data['collection'] = $collection;
 
         $content_items = Content::with(['meta', 'form'])
+            ->where('project_id', $project_id)
             ->where('collection_id', $collection_id);
 
         if ($request->get('search') != '') {
@@ -219,6 +220,9 @@ class ContentController extends Controller
         $criteria = $request->get('cr', 'ASC');
         $each     = $request->get('each', 15);
 
+        $count1 = clone $content_items; $count2 = clone $content_items;
+        $count3 = clone $content_items; $count4 = clone $content_items;
+
         if ($request->get('sbm')) {
             $content_items->orderBy(
                 ContentMeta::select('value')->whereColumn('content_meta.content_id', 'content.id')
@@ -236,14 +240,10 @@ class ContentController extends Controller
             }
         }
 
-        $count1 = clone $content_items; $count2 = clone $content_items;
-        $count3 = clone $content_items; $count4 = clone $content_items;
-
         $isComments = $collection->slug === 'comments';
 
         $getItems = $request->get('getItems');
         if ($isComments) {
-            // Comments use their own status field (pending/approved/spam/trash).
             if (in_array($getItems, ['pending', 'approved', 'spam', 'trash'], true)) {
                 $content_items = $content_items->whereHas(
                     'meta',
@@ -273,11 +273,41 @@ class ContentController extends Controller
                 ->unique()
             : collect();
 
+        $mediaFields = collect($collection->fields)->filter(fn ($f) => $f->type === 'media');
+        $mediaIdMap  = collect();
+        if ($mediaFields->isNotEmpty()) {
+            $allMediaIds = collect($content_items->items())
+                ->flatMap(fn ($c) => $c->meta->flatMap(fn ($m) =>
+                    $mediaFields->contains('name', $m->field_name)
+                        ? collect(explode(',', (string) $m->value))->map(fn ($id) => (int) trim($id))->all()
+                        : []
+                ))->filter(fn ($id) => $id > 0)->unique()->values();
+            $mediaIdMap = $allMediaIds->isEmpty()
+                ? collect()
+                : Media::with('project')->where('project_id', $project->id)->whereIn('id', $allMediaIds)->get()->keyBy('id');
+        }
+
         foreach ($content_items as $c) {
             $c->created_by   = $users->get($c->created_by);
             $c->updated_by   = $users->get($c->updated_by);
             $c->published_by = $users->get($c->published_by);
             $c->has_pending_draft = $c->isPublished() && $draftParentIds->contains($c->id);
+
+            foreach ($mediaFields as $f) {
+                $m = $c->meta->firstWhere('field_name', $f->name);
+                if (! $m) {
+                    $c->{$f->name . '_url'}       = null;
+                    $c->{$f->name . '_url_thumb'} = null;
+                    $c->{$f->name . '_urls'}      = [];
+                    continue;
+                }
+                $ids    = collect(explode(',', (string) $m->value))->map(fn ($id) => (int) trim($id))->filter(fn ($id) => $id > 0);
+                $first  = $mediaIdMap->get($ids->first());
+                $c->{$f->name . '_url'}       = $first?->full_url ?? null;
+                $c->{$f->name . '_url_thumb'} = $first?->full_url_thumb ?? null;
+                $c->{$f->name . '_urls'}      = $ids->map(fn ($id) => $mediaIdMap->get($id)?->full_url_thumb)->all();
+            }
+
             if ($isComments) {
                 $c->status = $c->meta->firstWhere('field_name', 'status')?->value ?? 'pending';
             }
@@ -290,8 +320,6 @@ class ContentController extends Controller
         $data['trashed']     = $count4->onlyTrashed()->count();
 
         if ($isComments) {
-            // Independent queries: the count clones above already carry
-            // published_at filters from the generic draft/published counts.
             $countComments = fn (string $status) => Content::where('project_id', $project->id)
                 ->where('collection_id', $collection_id)
                 ->whereHas('meta', fn ($q) => $q->where('field_name', 'status')->where('value', $status))
@@ -341,8 +369,6 @@ class ContentController extends Controller
             ->where('collection_id', $collection->id)
             ->where('id', $content_id)->firstOrFail();
 
-        // If this content has a pending draft branch, transparently redirect
-        // the editor to the draft so they always work on the latest version.
         if ($content->isPublished() && $content->hasPendingDraft()) {
             $draft = $content->draftChild()->with('meta')->first();
             $content = $draft;

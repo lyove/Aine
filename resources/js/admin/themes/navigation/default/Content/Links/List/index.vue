@@ -450,6 +450,8 @@ export default {
       return ids.map((id) => (tagMap.value[id] ? tagMap.value[id].name : id)).filter(Boolean);
     }
 
+    const nameMapsCache = ref({});
+
     async function loadNameMaps() {
       const fields = collection.value.fields || [];
       const relationTargets = [];
@@ -463,34 +465,37 @@ export default {
         }
       });
 
-      const map = {};
-      for (const rel of relationTargets) {
-        try {
-          const { data } = await axios.get(`projects/${pid}/collections/${rel.target}/entries`, {
-            params: { each: 200, getItems: "all" },
-          });
-          const target = data.collection ? data.collection.slug : null;
-          const names = {};
-          (data.content.data || []).forEach((row) => {
-            const nameMeta = (row.meta || []).find((m) =>
-              ["name", "title", "tag"].includes(m.field_name)
-            );
-            const colorMeta = (row.meta || []).find((m) => m.field_name === "color");
-            names[row.id] = {
-              name: nameMeta ? nameMeta.value : `#${row.id}`,
-              color: colorMeta ? colorMeta.value : null,
-            };
-          });
-          if (target === "tags") {
-            tagMap.value = names;
-          } else {
-            categoryMap.value = names;
+      const pending = relationTargets.filter((rel) => !nameMapsCache.value[rel.target]);
+
+      await Promise.all(
+        pending.map(async (rel) => {
+          try {
+            const { data } = await axios.get(`projects/${pid}/collections/${rel.target}/entries`, {
+              params: { each: 200, getItems: "all" },
+            });
+            const target = data.collection ? data.collection.slug : null;
+            const names = {};
+            (data.content.data || []).forEach((row) => {
+              const nameMeta = (row.meta || []).find((m) =>
+                ["name", "title", "tag"].includes(m.field_name)
+              );
+              const colorMeta = (row.meta || []).find((m) => m.field_name === "color");
+              names[row.id] = {
+                name: nameMeta ? nameMeta.value : `#${row.id}`,
+                color: colorMeta ? colorMeta.value : null,
+              };
+            });
+            nameMapsCache.value[rel.target] = names;
+            if (target === "tags") {
+              tagMap.value = names;
+            } else {
+              categoryMap.value = names;
+            }
+          } catch (e) {
+            console.error("load relation map failed:", rel.target, e);
           }
-        } catch (e) {
-          console.error("load relation map failed:", rel.target, e);
-        }
-      }
-      void map;
+        })
+      );
     }
 
     function flattenRow(row) {
@@ -498,26 +503,8 @@ export default {
       (row.meta || []).forEach((m) => {
         flat[m.field_name] = m.value;
       });
-      flat._favicon = flat.favicon ? "" : "";
+      flat._favicon = row.favicon_url_thumb || row.favicon_url || "";
       return flat;
-    }
-
-    async function loadFavicons() {
-      const noIcon = rows.value.filter((r) => !r._favicon && r.url);
-      for (const row of noIcon.slice(0, 25)) {
-        try {
-          const { data } = await axios.get("/api/getFavicon", {
-            params: { url: row.url },
-            baseURL: "",
-            skipAuthRedirect: true,
-          });
-          if (data && data.data && data.data.favicon_url && !data.data.favicon_url.startsWith("data:")) {
-            row._favicon = data.data.favicon_url;
-          }
-        } catch (e) {
-          // Fall back to showing the initial letter
-        }
-      }
     }
 
     async function reload(page) {
@@ -543,8 +530,7 @@ export default {
         draftCount.value = data.draft || 0;
         trashedCount.value = data.trashed || 0;
         rows.value = (data.content.data || []).map(flattenRow);
-        await loadNameMaps();
-        loadFavicons();
+        loadNameMaps();
       } catch (e) {
         console.error("load links failed:", e);
       } finally {
@@ -554,7 +540,7 @@ export default {
 
     function changeGetItems(value) {
       getItems.value = value;
-      linkFilter.value = "all"; // Reset availability filter when switching status tab
+      linkFilter.value = "all";
       reload(1);
     }
 
@@ -657,7 +643,6 @@ export default {
     );
 
     onMounted(() => {
-      // Support initializing the publish-status tab from the URL ?filter=draft|published|trashed|all
       const qf = route.query.filter;
       if (qf && ["all", "published", "draft", "trashed"].includes(qf)) {
         getItems.value = qf;

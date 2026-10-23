@@ -22,9 +22,9 @@ class CreateContentMetaTable extends Migration
             $table->longText('value')->nullable();
             $table->timestamps();
             $table->softdeletes();
-
             $table->index(['project_id', 'collection_id', 'content_id'], 'idx_content_meta_project_collection_content');
             $table->index(['project_id', 'collection_id', 'field_name'], 'idx_content_meta_project_collection_field');
+            $table->index(['content_id', 'field_name'], 'idx_content_meta_content_field');
         });
     }
 
