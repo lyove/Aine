@@ -6,7 +6,7 @@
       <collection-sidebar :project="project" class="w-3/12 shrink-0 overflow-x-hidden bg-white" />
 
       <div class="min-w-0 flex-1 overflow-auto p-5">
-        <!-- 标题栏 + 操作 -->
+        <!-- Toolbar + actions -->
         <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-xl font-bold text-gray-800">{{ __(collection.name || 'Tags') }}</h2>
@@ -35,7 +35,7 @@
           </div>
         </div>
 
-        <!-- 标签胶囊墙 -->
+        <!-- Tag capsule wall -->
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div v-if="loading" class="flex flex-wrap gap-3">
             <div v-for="n in 9" :key="n" class="h-10 w-28 animate-pulse rounded-full bg-gray-100"></div>
@@ -73,7 +73,7 @@
                 :style="{ background: pillColor(tag) + '26', color: pillColor(tag) }"
               >{{ tag.usage }} {{ __('links') }}</span>
 
-              <!-- 操作按钮：常显，不依赖 hover -->
+              <!-- Actions always visible, not hover-dependent -->
               <span class="ml-1 flex items-center gap-0.5">
                 <router-link
                   v-if="canEdit"
@@ -179,7 +179,7 @@ export default {
       }
     }
 
-    // 统计每个 tag 被多少 links 引用（links 的 tags 字段是逗号分隔的 id）
+    // Count how many links reference each tag (the links tags field is a comma-separated list of ids)
     async function loadUsage(tags) {
       const usage = {};
       tags.forEach((t) => { usage[t.id] = 0; });
@@ -197,7 +197,7 @@ export default {
           });
         });
       } catch (e) {
-        // 统计失败不阻塞页面
+        // Counting failure must not block the page
       }
       rows.value = rows.value.map((t) => ({ ...t, usage: usage[t.id] || 0 }));
     }

@@ -6,7 +6,7 @@
       <collection-sidebar :project="project" class="w-3/12 shrink-0 overflow-x-hidden bg-white" />
 
       <div class="min-w-0 flex-1 overflow-auto p-5">
-        <!-- 标题栏 + 操作 -->
+        <!-- Toolbar + actions -->
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-xl font-bold text-gray-800">{{ __(collection.name || 'Links') }}</h2>
@@ -122,7 +122,7 @@
           </button>
         </div>
 
-        <!-- 表格 -->
+        <!-- Table -->
         <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <div v-if="loading" class="space-y-2 p-5">
             <div v-for="n in 5" :key="n" class="h-12 animate-pulse rounded-lg bg-gray-100"></div>
@@ -266,8 +266,8 @@
             </tbody>
           </table>
 
-          <!-- 分页 -->
-          <div v-if="!loading && rows.length" class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+          <!-- Pagination -->
+          <div v-if="rows.length" class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <span class="text-xs text-gray-400">
               {{ (currentPage - 1) * each + 1 }}–{{ Math.min(currentPage * each, totalCount) }} / {{ totalCount }}
             </span>
@@ -275,14 +275,14 @@
               <button
                 type="button"
                 class="rounded-lg border border-gray-200 px-2.5 py-1 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40"
-                :disabled="currentPage <= 1"
+                :disabled="loading || currentPage <= 1"
                 @click="reload(currentPage - 1)"
               ><i class="fa fa-chevron-left"></i></button>
               <span class="px-2 text-sm text-gray-600">{{ currentPage }} / {{ totalPages }}</span>
               <button
                 type="button"
                 class="rounded-lg border border-gray-200 px-2.5 py-1 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40"
-                :disabled="currentPage >= totalPages"
+                :disabled="loading || currentPage >= totalPages"
                 @click="reload(currentPage + 1)"
               ><i class="fa fa-chevron-right"></i></button>
             </div>
@@ -325,7 +325,7 @@ export default {
     const each = ref(15);
     const currentPage = ref(1);
     const getItems = ref("all");
-    const linkFilter = ref("all"); // "all" | "dead"  (client-side availability filter)
+    const linkFilter = ref("all"); // "all" | "dead" (client-side availability filter)
 
     const checking = ref(false);
     const stopChecking = ref(false);
@@ -479,7 +479,7 @@ export default {
             row._favicon = data.data.favicon_url;
           }
         } catch (e) {
-          // 抓不到就显示首字母
+          // Fall back to showing the initial letter
         }
       }
     }
@@ -518,7 +518,7 @@ export default {
 
     function changeGetItems(value) {
       getItems.value = value;
-      linkFilter.value = "all"; // 切发布状态 tab 时重置可访问性筛选
+      linkFilter.value = "all"; // Reset availability filter when switching status tab
       reload(1);
     }
 
@@ -548,7 +548,7 @@ export default {
         row.link_status = data.link_status;
         row.http_code = data.http_code;
         row.last_checked_at = data.last_checked_at;
-        // 同步回当前页渲染的行对象，让列表立即刷新
+        // Sync back to the rendered row on the current page so the list updates immediately
         const live = rows.value.find((r) => r.id === row.id);
         if (live) {
           live.link_status = data.link_status;
@@ -558,7 +558,7 @@ export default {
         if (data.link_status === "ok") checkOk.value++;
         else if (data.link_status === "dead") checkDeadCount.value++;
       } catch (e) {
-        //
+        // Ignore check errors
       } finally {
         checkingIds.value.delete(row.id);
         checkedCount.value++;
@@ -622,7 +622,7 @@ export default {
     );
 
     onMounted(() => {
-      // 支持从 URL ?filter=draft|published|trashed|all 初始化发布状态 tab（如 Dashboard Review 跳转）
+      // Support initializing the publish-status tab from the URL ?filter=draft|published|trashed|all
       const qf = route.query.filter;
       if (qf && ["all", "published", "draft", "trashed"].includes(qf)) {
         getItems.value = qf;
@@ -647,7 +647,6 @@ export default {
 </script>
 
 <style scoped>
-/* Actions 固定列：背景写死不透明，防止横向滚动时透出下层单元格内容 */
 td.actions-col,
 th.actions-col {
   background-color: #ffffff;

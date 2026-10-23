@@ -91,20 +91,21 @@
             </tbody>
           </table>
 
-          <div v-if="!loading && rows.length" class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+          <!-- Pagination: stays visible during loading, only the table area shows a loading state -->
+          <div v-if="rows.length" class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <span class="text-xs text-gray-400">{{ (currentPage - 1) * each + 1 }}–{{ Math.min(currentPage * each, totalCount) }} / {{ totalCount }}</span>
             <div class="flex items-center gap-1">
               <button
                 type="button"
                 class="rounded-lg border border-gray-200 px-2.5 py-1 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40"
-                :disabled="currentPage <= 1"
+                :disabled="loading || currentPage <= 1"
                 @click="reload(currentPage - 1)"
               ><i class="fa fa-chevron-left"></i></button>
               <span class="px-2 text-sm text-gray-600">{{ currentPage }} / {{ totalPages }}</span>
               <button
                 type="button"
                 class="rounded-lg border border-gray-200 px-2.5 py-1 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40"
-                :disabled="currentPage >= totalPages"
+                :disabled="loading || currentPage >= totalPages"
                 @click="reload(currentPage + 1)"
               ><i class="fa fa-chevron-right"></i></button>
             </div>

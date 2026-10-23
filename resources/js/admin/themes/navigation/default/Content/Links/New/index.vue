@@ -6,7 +6,7 @@
       <collection-sidebar :project="project" class="w-3/12 shrink-0 overflow-x-hidden bg-white" />
 
       <div class="min-w-0 flex-1 overflow-auto p-6">
-        <!-- 面包屑 + 保存 -->
+        <!-- Breadcrumb + save -->
         <div class="mb-5 flex items-center justify-between">
           <div class="flex items-center gap-2 text-sm">
             <router-link
@@ -34,7 +34,7 @@
         </div>
 
         <div class="max-w-4xl space-y-5">
-          <!-- 基本信息 -->
+          <!-- Basic info -->
           <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
               <i class="fa fa-link text-indigo-500"></i>{{ __('Link Details') }}
@@ -91,7 +91,7 @@
             </div>
           </div>
 
-          <!-- 分类与标签 -->
+          <!-- Categories & tags -->
           <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
               <i class="fa fa-folder text-indigo-500"></i>{{ __('Organization') }}
@@ -136,7 +136,7 @@
             </div>
           </div>
 
-          <!-- 展示设置 -->
+          <!-- Display settings -->
           <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
               <i class="fa fa-sliders-h text-indigo-500"></i>{{ __('Display & Behavior') }}
@@ -241,9 +241,9 @@ export default {
       click_behavior: "detail",
     });
 
-    // 通用：按集合 id 拉 id→name 映射
+    // Generic: fetch id → name maps by collection id
     async function loadOptions() {
-      // 当前集合字段里找出 relation 目标
+      // Find the relation targets in the current collection's fields
       let categoryTarget = null;
       let tagsTarget = null;
       (collection.value.fields || []).forEach((field) => {
