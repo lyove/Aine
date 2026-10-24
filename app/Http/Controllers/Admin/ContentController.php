@@ -209,6 +209,48 @@ class ContentController extends Controller
             $content_items->whereIn('id', $meta);
         }
 
+        // Generic per-field filter (relation/enumeration fields only),
+        // e.g. filters[category]=342,343 -> content whose category contains
+        // any of the comma-separated values (OR semantics). Multi-value
+        // content_meta is stored as a comma-separated string, so each value
+        // is matched against the comma boundaries (=v / v,% / %,v / %,v,%).
+        $filters = $request->get('filters');
+        if (is_array($filters)) {
+            foreach ($filters as $fieldName => $rawValue) {
+                if (! is_string($rawValue) || $rawValue === '') {
+                    continue;
+                }
+
+                $field = $collection->fields->firstWhere('name', $fieldName);
+                if (! $field || ! in_array($field->type, ['relation', 'enumeration'])) {
+                    continue;
+                }
+
+                $values = array_values(array_filter(
+                    array_map('trim', explode(',', $rawValue)),
+                    fn ($v) => $v !== ''
+                ));
+                if ($values === []) {
+                    continue;
+                }
+
+                $content_items->whereHas('meta', function ($q) use ($fieldName, $values) {
+                    $q->where('field_name', $fieldName);
+                    $q->where(function ($sub) use ($values) {
+                        foreach ($values as $v) {
+                            $esc = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], (string) $v);
+                            $sub->orWhere(function ($x) use ($esc) {
+                                $x->whereRaw('value = ?', [$esc])
+                                  ->orWhereRaw("value LIKE ? ESCAPE '\\'", [$esc . ',%'])
+                                  ->orWhereRaw("value LIKE ? ESCAPE '\\'", ['%,' . $esc])
+                                  ->orWhereRaw("value LIKE ? ESCAPE '\\'", ['%,' . $esc . ',%']);
+                            });
+                        }
+                    });
+                });
+            }
+        }
+
         $locale = $request->get('locale');
         if ($locale !== null && $locale !== '' && $locale !== 'all') {
             $content_items->where('locale', $locale);

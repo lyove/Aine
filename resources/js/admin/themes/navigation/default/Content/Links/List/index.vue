@@ -14,6 +14,9 @@
               {{ totalCount }} {{ __('links') }} · {{ publishedCount }} {{ __('published') }}
               <span v-if="draftCount" class="ml-2 text-amber-500">{{ draftCount }} {{ __('drafts') }}</span>
               <span v-if="trashedCount" class="ml-2 text-orange-500">{{ trashedCount }} {{ __('trashed') }}</span>
+              <span v-if="selectedCatIds.length" class="ml-2 font-medium text-indigo-500">
+                {{ __('Filtered by {count} categories', { count: selectedCatIds.length }) }}
+              </span>
             </p>
           </div>
 
@@ -89,7 +92,7 @@
           >{{ __('Stop') }}</button>
         </div>
 
-        <div class="mb-4 flex items-center gap-1">
+        <div class="mb-4 flex flex-wrap items-center gap-1">
           <button
             v-for="tab in statusTabs"
             :key="tab.value"
@@ -109,6 +112,66 @@
             <i class="fa fa-exclamation-triangle mr-1"></i>{{ __('Dead') }}
             <span v-if="deadRows.length" class="ml-1 rounded-full bg-white/20 px-1.5 text-xs">{{ deadRows.length }}</span>
           </button>
+
+          <!-- Category filter (multi-select dropdown) -->
+          <div class="relative ml-1" @click.stop>
+            <button
+              type="button"
+              class="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm"
+              :class="selectedCatIds.length ? 'bg-indigo-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+              @click="catFilterOpen = !catFilterOpen"
+            >
+              <i class="fa fa-filter mr-1"></i>{{ __('Category filter') }}
+              <span v-if="selectedCatIds.length" class="rounded-full bg-white/25 px-1.5 text-xs">{{ selectedCatIds.length }}</span>
+            </button>
+            <div
+              v-if="catFilterOpen"
+              class="absolute left-0 top-full z-30 mt-2 w-64 rounded-2xl border border-gray-200 bg-white p-3 shadow-2xl"
+            >
+              <div class="relative">
+                <input
+                  v-model="catFilterSearch"
+                  type="text"
+                  class="w-full rounded-lg border border-gray-300 py-1.5 pl-8 pr-3 text-sm focus:border-indigo-400 focus:outline-none"
+                  :placeholder="__('Search categories...')"
+                />
+                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
+              </div>
+              <div class="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+                <div
+                  v-for="cat in filterCategoryOptions"
+                  :key="cat.id"
+                  class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-gray-50"
+                  @click="toggleCatFilter(cat.id)"
+                >
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 accent-indigo-500"
+                    :checked="selectedCatIds.includes(cat.id)"
+                    @click.stop="toggleCatFilter(cat.id)"
+                  />
+                  <span
+                    v-if="cat.color"
+                    class="inline-block h-3 w-3 shrink-0 rounded-full"
+                    :style="{ background: cat.color }"
+                  ></span>
+                  <span class="truncate text-gray-800">{{ cat.name }}</span>
+                </div>
+                <div v-if="!filterCategoryOptions.length" class="py-6 text-center text-sm text-gray-400">
+                  {{ __('No categories found.') }}
+                </div>
+              </div>
+              <div class="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 text-xs text-gray-500">
+                <span>{{ __('{count} categories selected', { count: selectedCatIds.length }) }}</span>
+                <button
+                  v-if="selectedCatIds.length"
+                  type="button"
+                  class="font-medium text-red-500 hover:text-red-600"
+                  @click="clearCatFilter"
+                >{{ __('Clear filter') }}</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Bulk action bar (shown when rows are selected) -->
@@ -140,7 +203,9 @@
 
           <div v-else-if="!filteredRows.length" class="p-14 text-center text-sm text-gray-400">
             <i class="fa fa-link-slash mb-3 block text-3xl text-gray-300"></i>
-            {{ linkFilter === 'dead' ? __('No dead links found.') : __('No links found.') }}
+            {{ linkFilter === 'dead'
+              ? __('No dead links found.')
+              : (selectedCatIds.length ? __('No links found in the selected categories.') : __('No links found.')) }}
           </div>
 
           <table v-else class="w-full min-w-[1100px] text-left text-sm">
@@ -484,12 +549,21 @@ export default {
     const bulkCatSearch = ref("");
     const bulkSubmitting = ref(false);
 
+    // ---- Category filter (multi-select dropdown) ----
+    const catFilterOpen = ref(false);
+    const selectedCatIds = ref([]);
+    const catFilterSearch = ref("");
+
     const allPageSelected = computed(() => filteredRows.value.length > 0 && filteredRows.value.every((r) => selectedIds.value.has(r.id)));
     const categoryOptions = computed(() =>
       Object.entries(categoryMap.value).map(([id, v]) => ({ id, name: v.name, color: v.color }))
     );
     const filteredCategoryOptions = computed(() => {
       const q = (bulkCatSearch.value || "").toLowerCase();
+      return categoryOptions.value.filter((c) => (c.name || "").toLowerCase().includes(q));
+    });
+    const filterCategoryOptions = computed(() => {
+      const q = (catFilterSearch.value || "").toLowerCase();
       return categoryOptions.value.filter((c) => (c.name || "").toLowerCase().includes(q));
     });
 
@@ -508,6 +582,17 @@ export default {
     }
     function clearSelection() {
       selectedIds.value.clear();
+    }
+    function toggleCatFilter(id) {
+      const i = selectedCatIds.value.indexOf(id);
+      if (i >= 0) selectedCatIds.value.splice(i, 1);
+      else selectedCatIds.value.push(id);
+      reload(1);
+    }
+    function clearCatFilter() {
+      selectedCatIds.value = [];
+      catFilterSearch.value = "";
+      reload(1);
     }
     function openBulkCategoryModal() {
       bulkCategoryIds.value = [];
@@ -702,6 +787,7 @@ export default {
             sbm: 1,
             each: each.value,
             getItems: getItems.value,
+            filters: selectedCatIds.value.length ? { category: selectedCatIds.value.join(",") } : undefined,
           },
         });
         if (!project.value?.id) project.value = data.project;
@@ -844,6 +930,8 @@ export default {
       checking, stopChecking, checkingIds, checkedCount, checkTotal, checkOk, checkDeadCount, checkPercent,
       deadRows, filteredRows, checkAll, checkDead, toggleDeadFilter,
       selectedIds, bulkModalOpen, bulkCategoryIds, bulkCatSearch, bulkSubmitting,
+      catFilterOpen, selectedCatIds, catFilterSearch, filterCategoryOptions,
+      toggleCatFilter, clearCatFilter,
       allPageSelected, categoryOptions, filteredCategoryOptions,
       isSelected, toggleSelect, toggleSelectAllPage, clearSelection,
       openBulkCategoryModal, closeBulkCategoryModal, toggleBulkCategory, submitBulkCategory,
