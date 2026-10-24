@@ -82,6 +82,16 @@
               </div>
               <p class="mt-1 text-xs text-gray-400">{{ __('Used for the category badge and banner on the frontend.') }}</p>
             </div>
+
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-gray-700">{{ __('Description') }}</label>
+              <textarea
+                v-model="form.description"
+                rows="3"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none"
+                :placeholder="__('Short description of this category')"
+              ></textarea>
+            </div>
           </div>
         </div>
       </div>
@@ -119,6 +129,7 @@ export default {
       title: "",
       slug: "",
       color: "#6366f1",
+      description: "",
     });
 
     async function save(published) {
@@ -137,6 +148,7 @@ export default {
             title: form.title,
             slug: form.slug,
             color: form.color,
+            description: form.description,
           },
         });
         toast.success(__("Category created!"));
