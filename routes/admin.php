@@ -247,6 +247,7 @@ Route::middleware(['auth:web', 'backend.user'])->prefix(\App\Support\AdminPath::
         Route::post('/collections/{collection_id}/entries/move-to-trash-selected', [ContentController::class, 'moveToTrashSelected']);
         Route::post('/collections/{collection_id}/entries/delete-selected', [ContentController::class, 'deleteSelected']);
         Route::post('/collections/{collection_id}/entries/restore-selected', [ContentController::class, 'restoreSelected']);
+        Route::post('/collections/{collection_id}/entries/update-field-selected', [ContentController::class, 'updateFieldSelected']);
 
         Route::post('/entries/get-selected-records', [ContentController::class, 'getSelectedRecords']);
         Route::post('/entries/get-selected-files', [ContentController::class, 'getSelectedFiles']);

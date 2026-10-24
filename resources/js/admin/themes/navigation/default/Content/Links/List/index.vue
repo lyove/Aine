@@ -111,6 +111,27 @@
           </button>
         </div>
 
+        <!-- Bulk action bar (shown when rows are selected) -->
+        <div
+          v-if="selectedIds.size > 0"
+          class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5"
+        >
+          <span class="text-sm font-semibold text-indigo-700">{{ __('{count} selected', { count: selectedIds.size }) }}</span>
+          <button
+            type="button"
+            class="rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-600"
+            @click="openBulkCategoryModal"
+          >
+            <i class="fa fa-folder-open mr-1"></i>{{ __('Change category') }}
+          </button>
+          <span class="flex-1"></span>
+          <button
+            type="button"
+            class="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50"
+            @click="clearSelection"
+          >{{ __('Cancel selection') }}</button>
+        </div>
+
         <!-- Table -->
         <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <div v-if="loading" class="space-y-2 p-5">
@@ -125,6 +146,16 @@
           <table v-else class="w-full min-w-[1100px] text-left text-sm">
             <thead class="border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
               <tr>
+                <th class="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-gray-300 accent-indigo-500"
+                    :checked="allPageSelected"
+                    :disabled="!filteredRows.length"
+                    @change="toggleSelectAllPage"
+                    :title="__('Select all on this page')"
+                  />
+                </th>
                 <th class="px-4 py-3 font-medium">{{ __('Link') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Category') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Tags') }}</th>
@@ -136,7 +167,15 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
-              <tr v-for="row in filteredRows" :key="row.id" class="group hover:bg-indigo-50/40">
+              <tr v-for="row in filteredRows" :key="row.id" class="group hover:bg-indigo-50/40" :class="{ 'row-selected': isSelected(row.id) }">
+                <td class="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-gray-300 accent-indigo-500"
+                    :checked="isSelected(row.id)"
+                    @change="toggleSelect(row.id, $event)"
+                  />
+                </td>
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
                     <img
@@ -305,6 +344,78 @@
       </div>
     </div>
   </div>
+
+  <!-- Bulk category change modal -->
+  <div
+    v-if="bulkModalOpen"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 px-4"
+    @click.self="closeBulkCategoryModal"
+  >
+    <div class="w-[480px] max-w-full rounded-2xl bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <h3 class="text-base font-bold text-gray-800">
+          <i class="fa fa-folder-open mr-2 text-indigo-500"></i>{{ __('Change category') }}
+        </h3>
+        <button type="button" class="text-gray-400 hover:text-gray-600" @click="closeBulkCategoryModal">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="px-5 py-4">
+        <p class="mb-3 text-sm text-gray-500">
+          {{ __('{count} links selected, choose target categories (multiple allowed):', { count: selectedIds.size }) }}
+        </p>
+        <div class="relative mb-3">
+          <input
+            v-model="bulkCatSearch"
+            type="text"
+            class="w-full rounded-lg border border-gray-300 py-1.5 pl-8 pr-3 text-sm focus:border-indigo-400 focus:outline-none"
+            :placeholder="__('Search categories...')"
+          />
+          <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
+        </div>
+        <div class="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+          <div
+            v-for="cat in filteredCategoryOptions"
+            :key="cat.id"
+            class="flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2 text-sm"
+            :class="bulkCategoryIds.includes(cat.id) ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-indigo-200'"
+            @click="toggleBulkCategory(cat.id)"
+          >
+            <input
+              type="checkbox"
+              class="h-4 w-4 accent-indigo-500"
+              :checked="bulkCategoryIds.includes(cat.id)"
+              @click.stop="toggleBulkCategory(cat.id)"
+            />
+            <span
+              v-if="cat.color"
+              class="inline-block h-3 w-3 shrink-0 rounded-full"
+              :style="{ background: cat.color }"
+            ></span>
+            <span class="font-medium text-gray-800">{{ cat.name }}</span>
+          </div>
+          <div v-if="!filteredCategoryOptions.length" class="py-8 text-center text-sm text-gray-400">
+            {{ __('No categories found.') }}
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 border-t border-gray-100 px-5 py-3.5">
+        <button
+          type="button"
+          class="rounded-lg border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+          @click="closeBulkCategoryModal"
+        >{{ __('Cancel') }}</button>
+        <button
+          type="button"
+          class="rounded-lg bg-indigo-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-50"
+          :disabled="bulkSubmitting || !bulkCategoryIds.length"
+          @click="submitBulkCategory"
+        >
+          <i v-if="bulkSubmitting" class="fa fa-spinner fa-spin mr-1"></i>{{ bulkSubmitting ? __('Changing...') : __('Confirm changes') }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -365,6 +476,76 @@ export default {
       const p = store.currentProject || project.value;
       return p && !(p.is_readonly || !p.status) && ["owner", "admin"].includes(p.my_role);
     });
+
+    // ---- Bulk category change (new) ----
+    const selectedIds = ref(new Set());
+    const bulkModalOpen = ref(false);
+    const bulkCategoryIds = ref([]);
+    const bulkCatSearch = ref("");
+    const bulkSubmitting = ref(false);
+
+    const allPageSelected = computed(() => filteredRows.value.length > 0 && filteredRows.value.every((r) => selectedIds.value.has(r.id)));
+    const categoryOptions = computed(() =>
+      Object.entries(categoryMap.value).map(([id, v]) => ({ id, name: v.name, color: v.color }))
+    );
+    const filteredCategoryOptions = computed(() => {
+      const q = (bulkCatSearch.value || "").toLowerCase();
+      return categoryOptions.value.filter((c) => (c.name || "").toLowerCase().includes(q));
+    });
+
+    function isSelected(id) {
+      return selectedIds.value.has(id);
+    }
+    function toggleSelect(id, e) {
+      if (e.target.checked) selectedIds.value.add(id);
+      else selectedIds.value.delete(id);
+    }
+    function toggleSelectAllPage(e) {
+      filteredRows.value.forEach((r) => {
+        if (e.target.checked) selectedIds.value.add(r.id);
+        else selectedIds.value.delete(r.id);
+      });
+    }
+    function clearSelection() {
+      selectedIds.value.clear();
+    }
+    function openBulkCategoryModal() {
+      bulkCategoryIds.value = [];
+      bulkCatSearch.value = "";
+      bulkModalOpen.value = true;
+    }
+    function closeBulkCategoryModal() {
+      if (!bulkSubmitting.value) bulkModalOpen.value = false;
+    }
+    function toggleBulkCategory(id) {
+      const i = bulkCategoryIds.value.indexOf(id);
+      if (i >= 0) bulkCategoryIds.value.splice(i, 1);
+      else bulkCategoryIds.value.push(id);
+    }
+    async function submitBulkCategory() {
+      if (!bulkCategoryIds.value.length) return;
+      bulkSubmitting.value = true;
+      try {
+        const { data } = await axios.post(
+          `projects/${pid}/collections/${cid}/entries/update-field-selected`,
+          {
+            selected: [...selectedIds.value],
+            field: "category",
+            value: bulkCategoryIds.value.join(","),
+          }
+        );
+        toast.success(__('{count} links updated.', { count: data.updated || 0 }));
+        bulkSubmitting.value = false; // release the submitting guard so the modal can close
+        closeBulkCategoryModal();
+        clearSelection();
+        reload();
+      } catch (e) {
+        toast.error(__("Failed to update categories, please try again."));
+      } finally {
+        bulkSubmitting.value = false;
+      }
+    }
+
     const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / each.value)));
 
     // Build the visible page numbers, collapsing long ranges with ellipses
@@ -662,6 +843,10 @@ export default {
       reload, changeGetItems, moveToTrash,
       checking, stopChecking, checkingIds, checkedCount, checkTotal, checkOk, checkDeadCount, checkPercent,
       deadRows, filteredRows, checkAll, checkDead, toggleDeadFilter,
+      selectedIds, bulkModalOpen, bulkCategoryIds, bulkCatSearch, bulkSubmitting,
+      allPageSelected, categoryOptions, filteredCategoryOptions,
+      isSelected, toggleSelect, toggleSelectAllPage, clearSelection,
+      openBulkCategoryModal, closeBulkCategoryModal, toggleBulkCategory, submitBulkCategory,
     };
   },
 };
@@ -677,5 +862,11 @@ thead th.actions-col {
 }
 .group:hover td.actions-col {
   background-color: #f8faff;
+}
+tbody tr.row-selected {
+  background-color: #eef2ff;
+}
+tbody tr.row-selected td.actions-col {
+  background-color: #eef2ff;
 }
 </style>

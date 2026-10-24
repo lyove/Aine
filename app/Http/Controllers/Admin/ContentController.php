@@ -1436,6 +1436,116 @@ class ContentController extends Controller
         return response([], 200);
     }
 
+    /**
+     * Bulk update a field value on selected content items.
+     * Body: { selected: [content ids], field: "category", value: "12,15" }.
+     * The value is stored as a comma-separated string in content_meta, which
+     * the frontend already parses with split(',').
+     * Supports relation fields (value must be content ids from the field's
+     * linked collection) and enumeration fields (value must be one of the
+     * field's allowed options).
+     */
+    public function updateFieldSelected($project_id, $collection_id, Request $request)
+    {
+        $project = Project::findOrFail($project_id);
+        $this->authorizeEditor($project);
+
+        $collection = Collection::with('fields')
+            ->where('project_id', $project->id)->where('id', $collection_id)->firstOrFail();
+
+        $fieldName = trim((string) $request->get('field', ''));
+        if ($fieldName === '') {
+            return response()->json([
+                'success' => false,
+                'message' => __('Field name is required.'),
+            ], 422);
+        }
+
+        $field = $collection->fields->firstWhere('name', $fieldName);
+        if (! $field || ! in_array($field->type, ['relation', 'enumeration'])) {
+            return response()->json([
+                'success' => false,
+                'message' => __('This collection has no supported field named ":field".', ['field' => $fieldName]),
+            ], 422);
+        }
+
+        $options   = json_decode($field->options, true) ?: [];
+        $selected  = $request->get('selected', []);
+        $rawValues = array_values(array_filter(
+            array_map('trim', explode(',', (string) $request->get('value'))),
+            fn ($v) => $v !== ''
+        ));
+
+        if (! is_array($selected) || $selected === [] || $rawValues === [] || count($rawValues) !== count(array_unique($rawValues))) {
+            return response()->json([
+                'success' => false,
+                'message' => __('Invalid selection or value.'),
+            ], 422);
+        }
+
+        // Validate every value against the field definition before writing.
+        if ($field->type === 'relation') {
+            $targetCollectionId = (int) ($options['relation']['collection'] ?? 0);
+            $targetCollection   = Collection::where('project_id', $project->id)
+                ->where('id', $targetCollectionId)->first();
+            $validCount = $targetCollection
+                ? Content::where('project_id', $project->id)
+                    ->where('collection_id', $targetCollection->id)
+                    ->whereIn('id', $rawValues)
+                    ->count()
+                : 0;
+
+            if (! $targetCollection || $validCount !== count($rawValues)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('One or more target values do not exist in the linked collection.'),
+                ], 422);
+            }
+        } else {
+            $allowed = (array) ($options['enumeration'] ?? []);
+            if (count(array_diff($rawValues, $allowed)) !== 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('One or more values are not allowed for this field.'),
+                ], 422);
+            }
+        }
+
+        $newValue = implode(',', $rawValues);
+        $updated  = 0;
+
+        DB::transaction(function () use ($selected, $collection, $fieldName, $newValue, $project, &$updated) {
+            foreach ($selected as $id) {
+                $content = Content::where('project_id', $project->id)
+                    ->where('collection_id', $collection->id)
+                    ->whereNull('draft_parent_id')
+                    ->where('id', $id)->first();
+                if (! $content) {
+                    continue;
+                }
+
+                ContentMeta::updateOrCreate(
+                    [
+                        'content_id'    => $content->id,
+                        'field_name'    => $fieldName,
+                        'project_id'    => $content->project_id,
+                        'collection_id' => $content->collection_id,
+                    ],
+                    ['value' => $newValue]
+                );
+                $content->touch();
+                $updated++;
+            }
+        });
+
+        AuditLogger::log('bulk_update_field', 'content', null,
+            "Bulk set {$fieldName} to #{$newValue} for {$updated} item(s)",
+            ['collection_id' => $collection->id, 'field' => $fieldName, 'value' => $newValue, 'count' => $updated],
+            $project->id);
+
+        return response()->json(['updated' => $updated], 200);
+    }
+
     // =================================================================
     // Workflow gate helper
     // =================================================================

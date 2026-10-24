@@ -282,6 +282,48 @@ Origin: https://your-frontend.com
 | 前台互动（收藏/点赞/评论/个人中心） | 13 | 0 |
 | **总计** | **27** | **13** |
 
+> 注：后台另有"批量操作"接口 6 个（见下方方式 4），走 Session Cookie 认证，不计入上表方式 1 / 方式 2 统计。
+
+### 方式 4：后台管理接口（Admin API）
+
+后台管理 SPA（`resources/js/admin`）使用的接口，基础前缀 `/admin-api`（前缀可在 `App\Support\AdminPath::apiSlug()` 中配置）。受 `EnsureBackendUser` 中间件保护，仅 `super_admin` / `editor` 角色可访问，前台 `user` 会话访问返回 `403`。
+
+> 认证：后台接口**不使用** Bearer Token，依赖后台登录后的 Session Cookie（`web` + `backend.user` 中间件）。本节只收录"内容批量操作"类接口；其余后台接口（内容 CRUD、集合、字段、媒体、翻译、语言管理等）见 `routes/admin.php`。
+
+#### 📝 内容批量操作
+
+| # | 方法 | 接口路径 | 说明 | 参数 |
+| - | --- | --- | --- | --- |
+| 43 | POST | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/update-field-selected` | **批量修改选中内容的字段值**（relation / enumeration 字段通用） | Body: `selected`: int[]（内容 ID，必填）、`field`: string（字段名，必填）、`value`: string（逗号分隔的新值，必填） |
+| 44 | POST | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/publish-selected` | 批量发布选中内容 | Body: `selected`: int[] |
+| 45 | POST | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/unpublish-selected` | 批量取消发布选中内容 | Body: `selected`: int[] |
+| 46 | POST | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/move-to-trash-selected` | 批量移入回收站 | Body: `selected`: int[] |
+| 47 | POST | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/delete-selected` | 批量永久删除（仅回收站内内容） | Body: `selected`: int[] |
+| 48 | POST | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/restore-selected` | 批量从回收站恢复 | Body: `selected`: int[] |
+
+##### ✅ 响应
+
+- 成功：`200`，`{ "updated": N }`（N = 实际更新的条目数）
+- 失败：`422`，`{ "success": false, "message": "..." }`
+
+`update-field-selected` 常见 422 场景：集合不存在该字段、字段类型不受支持（仅 relation / enumeration）、枚举值不在字段允许列表、关联值不属于目标集合、`selected` 为空或值重复。
+
+##### 📌 update-field-selected 示例
+
+```bash
+# 批量把内容 352、357 的 category 字段改为分类 342（单分类）
+curl -X POST "https://backend.com/admin-api/projects/4/collections/18/entries/update-field-selected" \
+  -H "Content-Type: application/json" \
+  -b "session_cookie=..." \
+  -d '{"selected":[352,357],"field":"category","value":"342"}'
+```
+
+- `field` 必须是该集合已有的字段名，且字段类型为 `relation` 或 `enumeration`。
+  - `relation`：`value` 必须是该字段 `options.relation.collection` 指向集合中的内容 ID（可逗号分隔多值）。
+  - `enumeration`：`value` 必须是字段 `options.enumeration` 允许的选项之一（可逗号分隔多值）。
+- 多值以逗号分隔字符串写入 `content_meta`，与前台 API 多值字段格式一致。
+- 单事务写入；每条成功更新会 `touch` 内容并写审计日志（action = `bulk_update_field`，记录 field、value、条数）。
+
 ***
 
 ## 参数说明
