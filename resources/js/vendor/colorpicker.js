@@ -11,7 +11,8 @@ export default {
             data() {
                 return {
                     colors: {
-                        hex: 'rgba(0, 0, 0, 0)',
+                        hex: '#000000',
+                        a: 1,
                     },
                     colorValue: '',
                     displayPicker: false,
@@ -48,7 +49,7 @@ export default {
             },
             mounted() {
                 const initialColor = this.modelValue || this.color;
-                if(initialColor !== undefined) this.setColor(initialColor);
+                if(initialColor !== undefined && initialColor !== null && initialColor !== '') this.setColor(initialColor);
             },
             methods: {
                 setColor(color) {
@@ -58,7 +59,8 @@ export default {
                 updateColors(color) {
                     if(color && color.slice(0, 1) == '#') {
                         this.colors = {
-                            hex: color
+                            hex: color,
+                            a: 1,
                         };
                     }
                     else if(color && color.slice(0, 4) == 'rgba') {
@@ -88,11 +90,12 @@ export default {
                 },
                 updateFromPicker(color) {
                     this.colors = color;
-                    if(color.rgba.a == 1) {
+                    const alpha = (color.rgba && color.rgba.a !== undefined) ? color.rgba.a : 1;
+                    if(alpha == 1) {
                         this.colorValue = color.hex;
                     }
                     else {
-                        this.colorValue = 'rgba(' + color.rgba.r + ', ' + color.rgba.g + ', ' + color.rgba.b + ', ' + color.rgba.a + ')';
+                        this.colorValue = 'rgba(' + color.rgba.r + ', ' + color.rgba.g + ', ' + color.rgba.b + ', ' + alpha + ')';
                     }
                 },
                 documentClick(e) {
