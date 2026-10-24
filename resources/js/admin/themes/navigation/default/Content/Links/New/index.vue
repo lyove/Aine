@@ -99,7 +99,9 @@
 
             <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div>
-                <label class="mb-1.5 block text-sm font-medium text-gray-700">{{ __('Category') }}</label>
+                <label class="mb-1.5 block text-sm font-medium text-gray-700">
+                  {{ __('Category') }} <span class="text-red-500">*</span>
+                </label>
                 <select
                   v-model="form.category"
                   class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none"
@@ -316,6 +318,10 @@ export default {
       }
       if (!form.url.trim()) {
         toast.error(__("URL is required."));
+        return;
+      }
+      if (!form.category) {
+        toast.error(__("Category is required."));
         return;
       }
       saving.value = true;

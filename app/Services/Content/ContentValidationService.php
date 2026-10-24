@@ -66,6 +66,7 @@ class ContentValidationService
                     $messages[$key($field->name, '*.value') . '.email'] =
                         'The ' . $field->name . ' must be a valid email address.';
                 } else {
+                    $rules[$key($field->name)][] = 'nullable';
                     $rules[$key($field->name)][] = 'email';
                     $messages[$key($field->name) . '.email'] =
                         'The ' . $field->name . ' must be a valid email address.';
@@ -80,6 +81,7 @@ class ContentValidationService
                     $messages[$key($field->name, '*.value') . '.numeric'] =
                         'The ' . $field->name . ' must be numeric.';
                 } else {
+                    $rules[$key($field->name)][] = 'nullable';
                     $rules[$key($field->name)][] = 'numeric';
                     $messages[$key($field->name) . '.numeric'] =
                         'The ' . $field->name . ' must be numeric.';
@@ -94,6 +96,7 @@ class ContentValidationService
                     $messages[$key($field->name, '*.value') . '.color'] =
                         'The ' . $field->name . ' must be a color string.';
                 } else {
+                    $rules[$key($field->name)][] = 'nullable';
                     $rules[$key($field->name)][] = 'color';
                     $messages[$key($field->name) . '.color'] =
                         'The ' . $field->name . ' must be a color string.';
