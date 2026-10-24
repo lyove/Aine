@@ -225,7 +225,7 @@
                     :title="__('Select all on this page')"
                   />
                 </th>
-                <th class="px-4 py-3 font-medium">{{ __('Link') }}</th>
+                <th class="w-[300px] max-w-[300px] px-4 py-3 font-medium">{{ __('Link') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Category') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Tags') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Weight') }}</th>
@@ -245,7 +245,7 @@
                     @change="toggleSelect(row.id, $event)"
                   />
                 </td>
-                <td class="px-4 py-3">
+                <td class="w-[300px] max-w-[300px] px-4 py-3">
                   <div class="flex items-center gap-3">
                     <img
                       v-if="row._favicon"
@@ -261,9 +261,9 @@
                     >
                       {{ initials(row.title) }}
                     </div>
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        <span class="truncate font-medium text-gray-800">{{ row.title }}</span>
+                    <div class="min-w-0 flex-1 overflow-hidden">
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="truncate font-medium text-gray-800" :title="row.title">{{ row.title }}</span>
                         <span
                           v-if="row.featured === '1' || row.featured === true"
                           class="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600"
@@ -273,7 +273,7 @@
                           class="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500"
                         ><i class="fa fa-lock mr-0.5"></i>Private</span>
                       </div>
-                      <div class="truncate text-xs text-gray-400">{{ row.url }}</div>
+                      <div class="truncate text-xs text-gray-400" :title="row.url">{{ row.url }}</div>
                     </div>
                   </div>
                 </td>
