@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>导航系统 Links 列表页 · 批量修改分类 交互示例</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; background:#eef1f5; font-size:14px; color:#1f2937; }
+  .app { width:1240px; margin:0 auto; background:#f9fafb; min-height:100vh; border:1px solid #e5e7eb; }
+  /* 顶部项目头 */
+  .project-header { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; background:#fff; border-bottom:1px solid #e5e7eb; }
+  .project-header .brand { font-weight:700; font-size:15px; color:#111827; }
+  .project-header .brand i { color:#6366f1; }
+  .project-header .right { display:flex; align-items:center; gap:12px; color:#6b7280; font-size:13px; }
+  .avatar { width:26px; height:26px; border-radius:50%; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; }
+  .body { display:flex; }
+  /* 左侧导航 */
+  .sidebar { width:250px; background:#fff; border-right:1px solid #e5e7eb; padding:14px 10px; }
+  .sidebar .section { font-size:11px; color:#9ca3af; letter-spacing:.05em; padding:8px 12px 4px; }
+  .sidebar .item { display:flex; align-items:center; gap:8px; padding:7px 12px; border-radius:8px; color:#374151; cursor:pointer; }
+  .sidebar .item.active { background:#eef2ff; color:#4f46e5; font-weight:600; }
+  .sidebar .item i { width:16px; text-align:center; font-size:12px; }
+  /* 主区域 */
+  .main { flex:1; padding:18px; }
+  .toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+  .toolbar h2 { font-size:20px; color:#1f2937; }
+  .toolbar .stat { font-size:12px; color:#9ca3af; margin-top:2px; }
+  .toolbar .btn-group { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn { border-radius:8px; padding:6px 12px; font-size:13px; border:1px solid #d1d5db; background:#fff; color:#4b5563; cursor:pointer; }
+  .btn:hover { background:#f3f4f6; }
+  .btn.primary { background:#6366f1; color:#fff; border-color:#6366f1; }
+  .btn.sky { background:#0ea5e9; color:#fff; border-color:#0ea5e9; }
+  .btn.indigo { background:#6366f1; color:#fff; border-color:#6366f1; }
+  .search { display:flex; align-items:center; gap:6px; border:1px solid #d1d5db; border-radius:8px; padding:5px 10px; background:#fff; color:#9ca3af; width:230px; }
+  .search input { border:none; outline:none; flex:1; font-size:13px; color:#374151; }
+  /* 状态 tab */
+  .tabs { display:flex; gap:6px; margin-bottom:14px; }
+  .tab { padding:5px 14px; border-radius:999px; font-size:13px; background:#fff; color:#4b5563; border:1px solid transparent; cursor:pointer; }
+  .tab.active { background:#6366f1; color:#fff; }
+  .tab.warn { background:#fff; color:#ef4444; }
+  /* 批量操作栏 */
+  .bulk-bar { display:flex; align-items:center; gap:10px; background:#eef2ff; border:1px solid #c7d2fe; border-radius:10px; padding:9px 14px; margin-bottom:12px; animation:pop .18s ease; }
+  @keyframes pop { from { opacity:0; transform:translateY(-4px);} to { opacity:1; transform:none;} }
+  .bulk-bar .count { font-weight:600; color:#4f46e5; font-size:13px; }
+  .bulk-bar .btn.small { padding:5px 11px; font-size:12px; }
+  .bulk-bar .btn.cat { background:#4f46e5; color:#fff; border-color:#4f46e5; }
+  .bulk-bar .btn.ghost { background:#fff; }
+  /* 表格 */
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead th { text-align:left; padding:10px 12px; background:#f9fafb; color:#6b7280; font-size:11px; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid #f3f4f6; }
+  tbody td { padding:11px 12px; border-bottom:1px solid #f9fafb; }
+  tbody tr:hover { background:#f5f7ff; }
+  tbody tr.selected { background:#eef2ff; }
+  input[type=checkbox] { width:15px; height:15px; accent-color:#6366f1; cursor:pointer; }
+  .link-cell { display:flex; align-items:center; gap:10px; }
+  .icon { width:32px; height:32px; border-radius:8px; background:#eef2ff; color:#6366f1; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; }
+  .link-cell .title { font-weight:600; color:#111827; }
+  .link-cell .url { font-size:11px; color:#9ca3af; }
+  .chip { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:2px 9px; font-size:12px; }
+  .chip .dot { width:7px; height:7px; border-radius:50%; }
+  .tag { background:#f3f4f6; color:#4b5563; border-radius:5px; padding:1px 7px; font-size:11px; }
+  .status { border-radius:999px; padding:2px 9px; font-size:11px; font-weight:600; }
+  .status.pub { background:#d1fae5; color:#059669; }
+  .status.ok { background:#d1fae5; color:#059669; }
+  .status.dead { background:#fee2e2; color:#dc2626; }
+  .row-action { color:#6366f1; background:#f9fafb; border-radius:7px; padding:4px 6px; font-size:12px; }
+  .row-action.danger { color:#f97316; }
+  /* 弹窗 */
+  .mask { position:fixed; inset:0; background:rgba(17,24,39,.45); display:none; align-items:center; justify-content:center; z-index:50; }
+  .mask.show { display:flex; }
+  .modal { width:520px; background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.18); animation:pop .2s ease; }
+  .modal-head { padding:16px 20px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; }
+  .modal-head h3 { font-size:16px; color:#111827; }
+  .modal-head .x { border:none; background:none; font-size:18px; color:#9ca3af; cursor:pointer; }
+  .modal-body { padding:16px 20px; }
+  .modal-body .hint { font-size:13px; color:#6b7280; margin-bottom:12px; }
+  .modal-body .hint b { color:#4f46e5; }
+  .cat-list { display:flex; flex-direction:column; gap:6px; max-height:280px; overflow:auto; }
+  .cat-item { display:flex; align-items:center; gap:10px; border:1px solid #e5e7eb; border-radius:10px; padding:9px 12px; cursor:pointer; transition:all .12s; }
+  .cat-item:hover { border-color:#c7d2fe; }
+  .cat-item.checked { border-color:#6366f1; background:#eef2ff; }
+  .cat-item .dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .cat-item .name { font-weight:600; color:#111827; flex:1; }
+  .cat-item .count { font-size:11px; color:#9ca3af; }
+  .modal-foot { padding:14px 20px; border-top:1px solid #f3f4f6; display:flex; justify-content:flex-end; gap:10px; }
+  .toast { position:fixed; top:24px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 18px; border-radius:10px; font-size:13px; display:none; z-index:99; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+  .toast.show { display:block; animation:pop .2s ease; }
+  .toast .ok { color:#34d399; }
+  .footnote { text-align:center; color:#9ca3af; font-size:11px; padding:12px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 项目头部（模拟） -->
+  <div class="project-header">
+    <div class="brand"><span style="color:#6366f1">◈</span> Aine Admin <span style="font-weight:400;color:#9ca3af;font-size:13px;margin-left:6px;">/ 导航系统</span></div>
+    <div class="right">
+      <span>项目角色：owner</span>
+      <div class="avatar">U</div>
+    </div>
+  </div>
+  <div class="body">
+    <!-- 左侧集合导航（模拟） -->
+    <div class="sidebar">
+      <div class="section">内容集合</div>
+      <div class="item active"><i>🔗</i> Links <span style="margin-left:auto;font-size:11px;color:#a5b4fc">128</span></div>
+      <div class="item"><i>🗂️</i> Categories <span style="margin-left:auto;font-size:11px;color:#c4c9d4">12</span></div>
+      <div class="item"><i>#</i> Tags <span style="margin-left:auto;font-size:11px;color:#c4c9d4">9</span></div>
+      <div class="item"><i>⚙</i> Globals</div>
+    </div>
+    <!-- 主区域 -->
+    <div class="main">
+      <div class="toolbar">
+        <div>
+          <h2>Links</h2>
+          <div class="stat">128 links · 118 published · 10 drafts · 2 trashed</div>
+        </div>
+        <div class="btn-group">
+          <div class="search"><span>⌕</span><input placeholder="搜索链接..."></div>
+          <button class="btn sky">⟳ 全部检测</button>
+          <button class="btn">🔄 刷新</button>
+          <button class="btn indigo">＋ 添加链接</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active">全部</button>
+        <button class="tab">已发布</button>
+        <button class="tab">草稿</button>
+        <button class="tab">回收站</button>
+        <button class="tab warn">⚠ 失效 2</button>
+      </div>
+
+      <!-- 批量操作栏（选中后出现） -->
+      <div class="bulk-bar" id="bulkBar">
+        <span class="count" id="selCount">已选 0 项</span>
+        <button class="btn small cat" id="btnCat">🗂️ 修改分类</button>
+        <button class="btn small ghost">发布</button>
+        <button class="btn small ghost" style="color:#ef4444;border-color:#fecaca">移入回收站</button>
+        <span style="flex:1"></span>
+        <button class="btn small ghost" id="btnClear">取消选择</button>
+      </div>
+
+      <!-- 表格 -->
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:34px"><input type="checkbox" id="checkAll" title="全选当前页"></th>
+              <th>链接</th>
+              <th>分类</th>
+              <th>标签</th>
+              <th>权重</th>
+              <th>点击行为</th>
+              <th>可用性</th>
+              <th>状态</th>
+              <th style="text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-title="Vue 3 官方文档" data-cat="前端框架" data-color="#6366f1">
+              <td><input type="checkbox" class="rowcheck"></td>
+              <td><div class="link-cell"><div class="icon">V</div><div><div class="title">Vue 3 官方文档</div><div class="url">https://vuejs.org</div></div></div></td>
+              <td><span class="chip" style="background:#eef2ff;color:#6366f1"><span class="dot" style="background:#6366f1"></span>前端框架</span></td>
+              <td><span class="tag">#javascript</span> <span class="tag">#spa</span></td>
+              <td>90</td>
+              <td>直接打开</td>
+              <td><span class="status ok">✓ 200</span></td>
+              <td><span class="status pub">已发布</span></td>
+              <td style="text-align:right"><span class="row-action">✎</span> <span class="row-action danger">🗑</span></td>
+            </tr>
+            <tr data-title="React 中文文档" data-cat="前端框架" data-color="#6366f1">
+              <td><input type="checkbox" class="rowcheck"></td>
+              <td><div class="link-cell"><div class="icon">R</div><div><div class="title">React 中文文档</div><div class="url">https://zh-hans.reactjs.org</div></div></div></td>
+              <td><span class="chip" style="background:#eef2ff;color:#6366f1"><span class="dot" style="background:#6366f1"></span>前端框架</span></td>
+              <td><span class="tag">#javascript</span></td>
+              <td>85</td>
+              <td>直接打开</td>
+              <td><span class="status ok">✓ 200</span></td>
+              <td><span class="status pub">已发布</span></td>
+              <td style="text-align:right"><span class="row-action">✎</span> <span class="row-action danger">🗑</span></td>
+            </tr>
+            <tr data-title="Tailwind CSS 指南" data-cat="前端框架" data-color="#6366f1">
+              <td><input type="checkbox" class="rowcheck"></td>
+              <td><div class="link-cell"><div class="icon">T</div><div><div class="title">Tailwind CSS 指南</div><div class="url">https://tailwindcss.com</div></div></div></td>
+              <td><span class="chip" style="background:#eef2ff;color:#6366f1"><span class="dot" style="background:#6366f1"></span>前端框架</span></td>
+              <td><span class="tag">#css</span></td>
+              <td>78</td>
+              <td>直接打开</td>
+              <td><span class="status ok">✓ 200</span></td>
+              <td><span class="status pub">已发布</span></td>
+              <td style="text-align:right"><span class="row-action">✎</span> <span class="row-action danger">🗑</span></td>
+            </tr>
+            <tr data-title="GitHub 趋势榜" data-cat="技术博客" data-color="#0ea5e9">
+              <td><input type="checkbox" class="rowcheck"></td>
+              <td><div class="link-cell"><div class="icon">G</div><div><div class="title">GitHub 趋势榜</div><div class="url">https://github.com/trending</div></div></div></td>
+              <td><span class="chip" style="background:#e0f2fe;color:#0ea5e9"><span class="dot" style="background:#0ea5e9"></span>技术博客</span></td>
+              <td><span class="tag">#dev</span></td>
+              <td>66</td>
+              <td>直接打开</td>
+              <td><span class="status ok">✓ 200</span></td>
+              <td><span class="status pub">已发布</span></td>
+              <td style="text-align:right"><span class="row-action">✎</span> <span class="row-action danger">🗑</span></td>
+            </tr>
+            <tr data-title="OpenAI API 文档" data-cat="AI 工具" data-color="#a855f7">
+              <td><input type="checkbox" class="rowcheck"></td>
+              <td><div class="link-cell"><div class="icon">O</div><div><div class="title">OpenAI API 文档</div><div class="url">https://platform.openai.com</div></div></div></td>
+              <td><span class="chip" style="background:#f3e8ff;color:#a855f7"><span class="dot" style="background:#a855f7"></span>AI 工具</span></td>
+              <td><span class="tag">#ai</span> <span class="tag">#api</span></td>
+              <td>60</td>
+              <td>详情页</td>
+              <td><span class="status ok">✓ 200</span></td>
+              <td><span class="status pub">已发布</span></td>
+              <td style="text-align:right"><span class="row-action">✎</span> <span class="row-action danger">🗑</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-top:1px solid #f3f4f6;font-size:12px;color:#9ca3af">
+          <span>1–5 / 128</span>
+          <span style="display:flex;gap:6px"><span class="btn small">‹</span><span class="btn small" style="background:#6366f1;color:#fff;border-color:#6366f1">1</span><span class="btn small">2</span><span class="btn small">›</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 修改分类弹窗 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>🗂️ 批量修改分类</h3>
+      <button class="x" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="hint" id="modalHint">已选 <b>0</b> 个链接，请选择要设置的目标分类（可多选）：</div>
+      <div class="cat-list">
+        <div class="cat-item" data-id="1"><span class="dot" style="background:#6366f1"></span><span class="name">前端框架</span><span class="count">18 个链接</span></div>
+        <div class="cat-item" data-id="2"><span class="dot" style="background:#0ea5e9"></span><span class="name">技术博客</span><span class="count">26 个链接</span></div>
+        <div class="cat-item" data-id="3"><span class="dot" style="background:#a855f7"></span><span class="name">AI 工具</span><span class="count">35 个链接</span></div>
+        <div class="cat-item" data-id="4"><span class="dot" style="background:#059669"></span><span class="name">开发工具</span><span class="count">22 个链接</span></div>
+        <div class="cat-item" data-id="5"><span class="dot" style="background:#f59e0b"></span><span class="name">设计资源</span><span class="count">9 个链接</span></div>
+        <div class="cat-item" data-id="6"><span class="dot" style="background:#ef4444"></span><span class="name">效率软件</span><span class="count">14 个链接</span></div>
+        <div class="cat-item" data-id="7"><span class="dot" style="background:#64748b"></span><span class="name">其他</span><span class="count">4 个链接</span></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="modalCancel">取消</button>
+      <button class="btn indigo" id="modalOk">确认修改</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  var rows = Array.prototype.slice.call(document.querySelectorAll("tbody tr"));
+  var checks = Array.prototype.slice.call(document.querySelectorAll(".rowcheck"));
+  var checkAll = document.getElementById("checkAll");
+  var bulkBar = document.getElementById("bulkBar");
+  var selCount = document.getElementById("selCount");
+  var mask = document.getElementById("mask");
+  var modalHint = document.getElementById("modalHint");
+  var toast = document.getElementById("toast");
+  var chosen = {}; // 弹窗内已选分类 id
+
+  function refresh() {
+    var n = checks.filter(function (c) { return c.checked; }).length;
+    selCount.textContent = "已选 " + n + " 项";
+    bulkBar.style.display = n ? "flex" : "none";
+    rows.forEach(function (r, i) { r.classList.toggle("selected", checks[i].checked); });
+  }
+  checks.forEach(function (c) { c.addEventListener("change", refresh); });
+  checkAll.addEventListener("change", function () {
+    checks.forEach(function (c) { c.checked = checkAll.checked; });
+    refresh();
+  });
+  document.getElementById("btnClear").addEventListener("click", function () {
+    checks.forEach(function (c) { c.checked = false; });
+    checkAll.checked = false;
+    refresh();
+  });
+  // 修改分类弹窗
+  document.getElementById("btnCat").addEventListener("click", openModal);
+  function openModal() {
+    var n = checks.filter(function (c) { return c.checked; }).length;
+    if (!n) return;
+    modalHint.innerHTML = "已选 <b>" + n + "</b> 个链接，请选择要设置的目标分类（可多选，可搜索）：";
+    mask.classList.add("show");
+  }
+  function closeModal() { mask.classList.remove("show"); chosen = {}; renderCats(); }
+  function renderCats() {
+    Array.prototype.slice.call(document.querySelectorAll(".cat-item")).forEach(function (el) {
+      el.classList.toggle("checked", !!chosen[el.getAttribute("data-id")]);
+    });
+  }
+  Array.prototype.slice.call(document.querySelectorAll(".cat-item")).forEach(function (el) {
+    el.addEventListener("click", function () {
+      var id = el.getAttribute("data-id");
+      if (chosen[id]) delete chosen[id]; else chosen[id] = true;
+      renderCats();
+    });
+  });
+  document.getElementById("modalClose").addEventListener("click", closeModal);
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOk").addEventListener("click", function () {
+    var n = checks.filter(function (c) { return c.checked; }).length;
+    var k = Object.keys(chosen).length;
+    if (!k) { toastMsg("请至少选择一个分类"); return; }
+    closeModal();
+    toastMsg("已把 <span class='ok'>" + n + "</span> 个链接的分类批量修改为 <b style='color:#34d399'>" + k + "</b> 个目标分类");
+    // 演示：把选中行的分类改为第一个所选分类
+    var firstCat = null;
+    Array.prototype.slice.call(document.querySelectorAll(".cat-item")).forEach(function (el) {
+      if (chosen[el.getAttribute("data-id")] && !firstCat) firstCat = el;
+    });
+    if (firstCat) {
+      var name = firstCat.querySelector(".name").textContent;
+      var color = firstCat.querySelector(".dot").style.background;
+      rows.forEach(function (r, i) {
+        if (checks[i].checked) {
+          var chip = r.querySelector(".chip");
+          chip.style.background = color + "22";
+          chip.style.color = color;
+          chip.innerHTML = '<span class="dot" style="background:' + color + '"></span>' + name;
+        }
+      });
+    }
+    checks.forEach(function (c) { c.checked = false; });
+    checkAll.checked = false;
+    refresh();
+  });
+  var tTimer = null;
+  function toastMsg(html) {
+    toast.innerHTML = html;
+    toast.classList.add("show");
+    clearTimeout(tTimer);
+    tTimer = setTimeout(function () { toast.classList.remove("show"); }, 3200);
+  }
+  // 支持 URL hash 直达状态：#selected（预选前3行）/ #modal（打开弹窗）
+  var h = location.hash;
+  if (h === "#selected" || h === "#modal") {
+    [0, 1, 2].forEach(function (i) { checks[i].checked = true; });
+    refresh();
+  }
+  if (h === "#modal") openModal();
+  window.addEventListener("hashchange", function () {
+    var hh = location.hash;
+    if (hh === "#modal") { [0, 1, 2].forEach(function (i) { checks[i].checked = true; }); refresh(); openModal(); }
+    else if (hh === "#selected") { [0, 1, 2].forEach(function (i) { checks[i].checked = true; }); refresh(); }
+  });
+  // 暴露给外部（浏览器自动化/演示）的入口
+  window.__demo = {
+    openModal: openModal,
+    closeModal: closeModal,
+    selectRows: function (n) { checks.forEach(function (c, i) { c.checked = i < n; }); refresh(); },
+    confirm: function () { document.getElementById("modalOk").click(); },
+  };
+})();
+</script>
+</body>
+</html>
