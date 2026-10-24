@@ -238,12 +238,13 @@ class ContentController extends Controller
                     $q->where('field_name', $fieldName);
                     $q->where(function ($sub) use ($values) {
                         foreach ($values as $v) {
-                            $esc = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], (string) $v);
-                            $sub->orWhere(function ($x) use ($esc) {
-                                $x->whereRaw('value = ?', [$esc])
-                                  ->orWhereRaw("value LIKE ? ESCAPE '\\'", [$esc . ',%'])
-                                  ->orWhereRaw("value LIKE ? ESCAPE '\\'", ['%,' . $esc])
-                                  ->orWhereRaw("value LIKE ? ESCAPE '\\'", ['%,' . $esc . ',%']);
+                            $v   = (string) $v;
+                            $esc = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $v);
+                            $sub->orWhere(function ($x) use ($v, $esc) {
+                                $x->whereRaw('value = ?', [$v])
+                                  ->orWhereRaw("value LIKE ? ESCAPE '!'", [$esc . ',%'])
+                                  ->orWhereRaw("value LIKE ? ESCAPE '!'", ['%,' . $esc])
+                                  ->orWhereRaw("value LIKE ? ESCAPE '!'", ['%,' . $esc . ',%']);
                             });
                         }
                     });

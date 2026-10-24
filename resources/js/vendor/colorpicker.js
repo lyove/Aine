@@ -1,3 +1,4 @@
+import { h } from 'vue';
 import { Sketch } from '@ckpack/vue-color';
 
 export default {
@@ -6,18 +7,6 @@ export default {
             components: {
                 'sketch-picker': Sketch,
             },
-            template: `
-            <div ref="colorpicker">
-                <div class="flex w-full">
-                    <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm cursor-pointer" @click="togglePicker()"><i class="fa fa-tint"></i></span>
-                    <input type="text" class="w-auto border-gray-300 text-sm" style="height: 42px;" v-model="colorValue" @focus="showPicker()" @input="updateFromInput" readonly/>
-                    <span class="inline-flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm cursor-pointer w-12" @click="togglePicker()" :style="'background-color: ' + colorValue"></span>
-                </div>
-                <div class="absolute z-50">
-                    <sketch-picker :model-value="colors" @update:model-value="updateFromPicker" v-if="displayPicker" />
-                </div>
-            </div>
-                `,
             props: ['color', 'modelValue'],
             data() {
                 return {
@@ -27,6 +16,35 @@ export default {
                     colorValue: '',
                     displayPicker: false,
                 }
+            },
+            render() {
+                return h('div', { ref: 'colorpicker' }, [
+                    h('div', { class: 'flex w-full' }, [
+                        h('span', {
+                            class: 'inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm cursor-pointer',
+                            onClick: () => this.togglePicker(),
+                        }, [h('i', { class: 'fa fa-tint' })]),
+                        h('input', {
+                            type: 'text',
+                            class: 'w-auto border-gray-300 text-sm',
+                            style: { height: '42px' },
+                            value: this.colorValue,
+                            readonly: true,
+                            onFocus: () => this.showPicker(),
+                            onInput: this.updateFromInput,
+                        }),
+                        h('span', {
+                            class: 'inline-flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm cursor-pointer w-12',
+                            onClick: () => this.togglePicker(),
+                            style: { backgroundColor: this.colorValue },
+                        }),
+                    ]),
+                    h('div', { class: 'absolute z-50' }, [
+                        this.displayPicker
+                            ? h(Sketch, { modelValue: this.colors, 'onUpdate:modelValue': (color) => this.updateFromPicker(color) })
+                            : null,
+                    ]),
+                ]);
             },
             mounted() {
                 const initialColor = this.modelValue || this.color;
@@ -38,12 +56,12 @@ export default {
                     this.colorValue = color;
                 },
                 updateColors(color) {
-                    if(color.slice(0, 1) == '#') {
+                    if(color && color.slice(0, 1) == '#') {
                         this.colors = {
                             hex: color
                         };
                     }
-                    else if(color.slice(0, 4) == 'rgba') {
+                    else if(color && color.slice(0, 4) == 'rgba') {
                         var rgba = color.replace(/^rgba?\(|\s+|\)$/g,'').split(','),
                             hex = '#' + ((1 << 24) + (parseInt(rgba[0]) << 16) + (parseInt(rgba[1]) << 8) + parseInt(rgba[2])).toString(16).slice(1);
                         this.colors = {
