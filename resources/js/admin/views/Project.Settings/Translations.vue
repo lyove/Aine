@@ -279,8 +279,7 @@ export default {
                     `projects/settings/translations/${this.$route.params.project_id}/save`,
                     { locale: this.locale, items }
                 );
-                this.$toast.success(__('Saved {translationsCount} translations.', { translationsCount: data.saved }));
-                // Refresh the project translation dict so open pages update immediately.
+                this.$toast.success((data.saved || 0) + " " + __('translations saved.'));
                 await useAdminStore().loadProjectTranslationsDict();
             } catch (error) {
                 console.error("Failed to save project translations:", error);

@@ -15,7 +15,7 @@
               <span v-if="draftCount" class="ml-2 text-amber-500">{{ draftCount }} {{ __('drafts') }}</span>
               <span v-if="trashedCount" class="ml-2 text-orange-500">{{ trashedCount }} {{ __('trashed') }}</span>
               <span v-if="selectedCatIds.length" class="ml-2 font-medium text-indigo-500">
-                {{ __('Filtered by {count} categories', { count: selectedCatIds.length }) }}
+                {{ selectedCatIds.length }} {{ __('categories filtered') }}
               </span>
             </p>
           </div>
@@ -137,7 +137,10 @@
                 />
                 <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
               </div>
-              <div class="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+              <div
+                class="cat-scroll mt-2 space-y-1 overflow-y-auto overscroll-contain pr-1"
+                style="max-height: 256px;"
+              >
                 <div
                   v-for="cat in filterCategoryOptions"
                   :key="cat.id"
@@ -162,7 +165,7 @@
                 </div>
               </div>
               <div class="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 text-xs text-gray-500">
-                <span>{{ __('{count} categories selected', { count: selectedCatIds.length }) }}</span>
+                <span>{{ selectedCatIds.length }} {{ __('categories selected') }}</span>
                 <button
                   v-if="selectedCatIds.length"
                   type="button"
@@ -179,7 +182,7 @@
           v-if="selectedIds.size > 0"
           class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5"
         >
-          <span class="text-sm font-semibold text-indigo-700">{{ __('{count} selected', { count: selectedIds.size }) }}</span>
+          <span class="text-sm font-semibold text-indigo-700">{{ selectedIds.size }} {{ __('items selected') }}</span>
           <button
             type="button"
             class="rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-600"
@@ -196,7 +199,8 @@
         </div>
 
         <!-- Table -->
-        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div class="overflow-x-auto">
           <div v-if="loading" class="space-y-2 p-5">
             <div v-for="n in 5" :key="n" class="h-12 animate-pulse rounded-lg bg-gray-100"></div>
           </div>
@@ -358,6 +362,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
 
           <!-- Pagination -->
           <div v-if="rows.length" class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
@@ -427,7 +432,7 @@
       </div>
       <div class="px-5 py-4">
         <p class="mb-3 text-sm text-gray-500">
-          {{ __('{count} links selected, choose target categories (multiple allowed):', { count: selectedIds.size }) }}
+          {{ selectedIds.size }} {{ __('links selected, choose target categories (multiple allowed):') }}
         </p>
         <div class="relative mb-3">
           <input
@@ -438,7 +443,10 @@
           />
           <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
         </div>
-        <div class="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+        <div
+          class="cat-scroll space-y-1.5 overflow-y-auto overscroll-contain pr-1"
+          style="max-height: 288px;"
+        >
           <div
             v-for="cat in filteredCategoryOptions"
             :key="cat.id"
@@ -484,7 +492,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
 import { useAdminStore } from "@/admin/store";
@@ -594,6 +602,16 @@ export default {
       catFilterSearch.value = "";
       reload(1);
     }
+    function handleDocumentClick() {
+      if (catFilterOpen.value) {
+        catFilterOpen.value = false;
+        if (selectedCatIds.value.length) {
+          selectedCatIds.value = [];
+          catFilterSearch.value = "";
+          reload(1);
+        }
+      }
+    }
     function openBulkCategoryModal() {
       bulkCategoryIds.value = [];
       bulkCatSearch.value = "";
@@ -619,7 +637,7 @@ export default {
             value: bulkCategoryIds.value.join(","),
           }
         );
-        toast.success(__('{count} links updated.', { count: data.updated || 0 }));
+        toast.success((data.updated || 0) + " " + __('links updated.'));
         bulkSubmitting.value = false; // release the submitting guard so the modal can close
         closeBulkCategoryModal();
         clearSelection();
@@ -915,7 +933,12 @@ export default {
       if (qf && ["all", "published", "draft", "trashed"].includes(qf)) {
         getItems.value = qf;
       }
+      document.addEventListener("click", handleDocumentClick);
       reload(1);
+    });
+
+    onBeforeUnmount(() => {
+      document.removeEventListener("click", handleDocumentClick);
     });
 
     return {
@@ -941,6 +964,19 @@ export default {
 </script>
 
 <style scoped>
+.cat-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.cat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cat-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+.cat-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
 td.actions-col,
 th.actions-col {
   background-color: #ffffff;

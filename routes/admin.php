@@ -199,6 +199,7 @@ Route::middleware(['auth:web', 'backend.user'])->prefix(\App\Support\AdminPath::
     Route::prefix('projects/{project_id}/collections/{collection_id}')->middleware('project.readonly')->group(function(){
         // Content entries
         Route::get('/entries', [ContentController::class, 'index']);
+        Route::get('/entries/usage', [ContentController::class, 'usageCounts']);
         Route::get('/new', [ContentController::class, 'new']);
         Route::post('/entries', [ContentController::class, 'store']);
         Route::get('/{content_id}/edit', [ContentController::class, 'edit']);

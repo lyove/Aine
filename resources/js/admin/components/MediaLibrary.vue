@@ -136,7 +136,7 @@
                                 </div>
                                 <div>{{ $filters.prettyBytes(selectedFile.size) }}</div>
                                 <div v-if="selectedFile.width !== null && selectedFile.height !== null">
-                                    {{ __('{selectedFileWidth} x {selectedFileHeight}', { selectedFileWidth: selectedFile.width, selectedFileHeight: selectedFile.height }) }}
+                                    {{ selectedFile.width }} x {{ selectedFile.height }}
                                 </div>
                             </div>
                             <div class="clear-left"></div>
@@ -660,7 +660,7 @@ export default {
             this.$swal
                 .fire({
                     title: __('Are you sure'),
-                    text: __('you want to delete these {fileCount} files?', { fileCount: this.selectedFiles.length }),
+                    text: __('you want to delete these') + " " + this.selectedFiles.length + " " + __('files?'),
                 })
                 .then((result) => {
                     if (result.isConfirmed) {

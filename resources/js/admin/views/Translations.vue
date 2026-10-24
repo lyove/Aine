@@ -265,8 +265,7 @@ export default {
                     value: (s.value || "").trim(),
                 }));
                 const { data } = await axios.post("translations/save", { locale: this.locale, items });
-                this.$toast.success(__('Saved {translationsCount} translations.', { translationsCount: data.saved }));
-                // Refresh the UI engine so open pages update immediately.
+                this.$toast.success((data.saved || 0) + " " + __('translations saved.'));
                 await useAdminStore().refreshUiLocale();
             } catch (error) {
                 console.error("Failed to save translations:", error);

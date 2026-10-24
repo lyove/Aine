@@ -1220,10 +1220,106 @@ class ContentController extends Controller
         return response(['favicon_url' => '', 'source' => 'failed'], 200);
     }
 
+    // ---------------------------------------------------------------------------
+    // Generic reference usage & delete protection
+    // ---------------------------------------------------------------------------
+    private function usageMap(Project $project, int $collectionId, array $ids, bool $singleChoiceOnly = false): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if (! $ids) {
+            return [];
+        }
+        $usage = [];
+        $idSet = [];
+        foreach ($ids as $id) {
+            $usage[$id] = ['total' => 0, 'by_collection' => []];
+            $idSet[$id] = true;
+        }
+        $collections = Collection::where('project_id', $project->id)->get();
+        foreach ($collections as $col) {
+            $fields = is_string($col->fields)
+                ? json_decode($col->fields, true)
+                : json_decode(json_encode($col->fields), true);
+            if (! is_array($fields)) {
+                continue;
+            }
+            foreach ($fields as $field) {
+                if (($field['type'] ?? '') !== 'relation') {
+                    continue;
+                }
+                $opts = $field['options'] ?? [];
+                if (is_string($opts)) {
+                    $opts = json_decode($opts, true) ?: [];
+                }
+                if ((int) ($opts['relation']['collection'] ?? 0) !== $collectionId) {
+                    continue;
+                }
+                if ($singleChoiceOnly && (string) ($opts['relation']['type'] ?? '1') !== '1') {
+                    continue;
+                }
+                $name = (string) ($field['name'] ?? '');
+                if ($name === '') {
+                    continue;
+                }
+                $values = ContentMeta::where('project_id', $project->id)
+                    ->where('collection_id', $col->id)
+                    ->where('field_name', $name)
+                    ->whereNotNull('value')
+                    ->where('value', '!=', '')
+                    ->pluck('value');
+                foreach ($values as $value) {
+                    foreach (explode(',', (string) $value) as $ref) {
+                        $ref = (int) trim($ref);
+                        if ($ref && isset($idSet[$ref])) {
+                            $usage[$ref]['total']++;
+                            $usage[$ref]['by_collection'][$col->id] = ($usage[$ref]['by_collection'][$col->id] ?? 0) + 1;
+                        }
+                    }
+                }
+            }
+        }
+        return $usage;
+    }
+
+    // GET .../entries/usage?ids=1,2,3 — usage counts for arbitrary content ids.
+    public function usageCounts($project_id, $collection_id, Request $request)
+    {
+        $project = Project::findOrFail($project_id);
+        $this->authorizeEditor($project);
+        $ids = array_values(array_filter(array_map('intval', explode(',', (string) $request->get('ids')))));
+        if (! $ids) {
+            return response(['usage' => []], 200);
+        }
+        return response(['usage' => $this->usageMap($project, (int) $collection_id, $ids)], 200);
+    }
+
+    private function ensureDeletable(Project $project, int $collectionId, array $ids): ?array
+    {
+        $usage = $this->usageMap($project, $collectionId, $ids, true);
+        $blocked = [];
+        foreach ($usage as $id => $u) {
+            if ($u['total'] > 0) {
+                $blocked[$id] = $u;
+            }
+        }
+        if (! $blocked) {
+            return null;
+        }
+        return [
+            'message' => 'This item is referenced by {count} items and cannot be deleted.',
+            'count' => array_sum(array_column($blocked, 'total')),
+        ];
+    }
+
     public function moveToTrash($project_id, $collection_id, $content_id)
     {
         $project = Project::findOrFail($project_id);
         $this->authorizeEditor($project);
+
+        $blocked = $this->ensureDeletable($project, (int) $collection_id, [$content_id]);
+        if ($blocked) {
+            return response()->json($blocked, 422);
+        }
 
         $content = Content::where('project_id', $project->id)
             ->where('collection_id', $collection_id)->where('id', $content_id)->firstOrFail();
@@ -1284,6 +1380,11 @@ class ContentController extends Controller
     {
         $project = Project::findOrFail($project_id);
         $this->authorizeAdmin($project);
+
+        $blocked = $this->ensureDeletable($project, (int) $collection_id, [$content_id]);
+        if ($blocked) {
+            return response()->json($blocked, 422);
+        }
 
         $content = Content::withTrashed()->where('project_id', $project->id)
             ->where('collection_id', $collection_id)->where('id', $content_id)->firstOrFail();
@@ -1406,7 +1507,14 @@ class ContentController extends Controller
         $project = Project::findOrFail($project_id);
         $this->authorizeEditor($project);
 
-        foreach ($request->get('selected') as $id) {
+        $selected = array_values(array_filter(array_map('intval', (array) $request->get('selected'))));
+        $blocked = $this->ensureDeletable($project, (int) $collection_id, $selected);
+        if ($blocked) {
+            $blocked['message'] = 'Some selected items are referenced and cannot be deleted.';
+            return response()->json($blocked, 422);
+        }
+
+        foreach ($selected as $id) {
             $content = Content::where('project_id', $project->id)
                 ->where('collection_id', $collection_id)->where('id', $id)->first();
             if (! $content) continue;
@@ -1431,7 +1539,14 @@ class ContentController extends Controller
         $project = Project::findOrFail($project_id);
         $this->authorizeAdmin($project);
 
-        foreach ($request->get('selected') as $id) {
+        $selected = array_values(array_filter(array_map('intval', (array) $request->get('selected'))));
+        $blocked = $this->ensureDeletable($project, (int) $collection_id, $selected);
+        if ($blocked) {
+            $blocked['message'] = 'Some selected items are referenced and cannot be deleted.';
+            return response()->json($blocked, 422);
+        }
+
+        foreach ($selected as $id) {
             $content = Content::withTrashed()->where('project_id', $project->id)
                 ->where('collection_id', $collection_id)->where('id', $id)->first();
             if (! $content) continue;

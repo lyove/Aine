@@ -313,7 +313,7 @@ function parseOldSources(fileText) {
     const m = fileText.match(/'sources' => \[\n([\s\S]*?)\n    \],\n    'defaults' => \[/);
     if (!m) return [];
     const out = [];
-    const lineRe = /^\s*'((?:\\.|[^'\\])*)',$/gm;
+    const lineRe = /^\s*'((?:\\.|[^'\\])*)',?$/gm;
     let lm;
     while ((lm = lineRe.exec(m[1])) !== null) {
         out.push(lm[1].replace(/\\'/g, "'").replace(/\\\\/g, "\\"));

@@ -38,6 +38,14 @@
           </div>
         </div>
 
+        <div
+          v-if="usageLoaded"
+          class="mb-4 flex max-w-2xl items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-600"
+        >
+          <i class="fa fa-link"></i>
+          {{ usageTotal }} {{ __('items reference this') }}
+        </div>
+
         <div class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h3 class="mb-5 flex items-center gap-2 text-base font-semibold text-gray-800">
             <i class="fa fa-folder text-indigo-500"></i>{{ __('Category Details') }}
@@ -138,6 +146,22 @@ export default {
       return item ? item.value : null;
     }
     const entryMeta = ref([]);
+    const usageTotal = ref(0);
+    const usageLoaded = ref(false);
+
+    async function loadUsage() {
+      try {
+        const { data } = await axios.get(`projects/${pid}/collections/${cid}/entries/usage`, {
+          params: { ids: contentId },
+        });
+        const u = data.usage || {};
+        usageTotal.value = u[contentId] ? u[contentId].total : 0;
+      } catch (e) {
+        // Counting failure must not block the edit page
+      } finally {
+        usageLoaded.value = true;
+      }
+    }
 
     async function loadEntry() {
       const { data } = await axios.get(`projects/${pid}/collections/${cid}/${contentId}/edit`);
@@ -198,20 +222,22 @@ export default {
           params: { project_id: pid, col_id: cid },
         });
       } catch (e) {
-        toast.error(__("Failed to move to trash."));
+        const msg = e.response && e.response.data && e.response.data.message;
+        toast.error(msg ? __(msg, e.response.data) : __("Failed to move to trash."));
       }
     }
 
     onMounted(async () => {
       try {
         await loadEntry();
+        await loadUsage();
       } catch (e) {
         console.error("load edit form failed:", e);
         toast.error(__("Failed to load category."));
       }
     });
 
-    return { pid, cid, contentId, project, collection, saving, form, canManage, save, moveToTrash };
+    return { pid, cid, contentId, project, collection, saving, form, canManage, save, moveToTrash, usageTotal, usageLoaded };
   },
 };
 </script>

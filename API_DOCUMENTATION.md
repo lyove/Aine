@@ -282,7 +282,6 @@ Origin: https://your-frontend.com
 | 前台互动（收藏/点赞/评论/个人中心） | 13 | 0 |
 | **总计** | **27** | **13** |
 
-<<<<<<< HEAD
 > 注：后台另有"批量操作"接口 6 个（见下方方式 4），走 Session Cookie 认证，不计入上表方式 1 / 方式 2 统计。
 
 ### 方式 4：后台管理接口（Admin API）
@@ -301,6 +300,9 @@ Origin: https://your-frontend.com
 | 46 | POST | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/move-to-trash-selected` | 批量移入回收站 | Body: `selected`: int[] |
 | 47 | POST | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/delete-selected` | 批量永久删除（仅回收站内内容） | Body: `selected`: int[] |
 | 48 | POST | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/restore-selected` | 批量从回收站恢复 | Body: `selected`: int[] |
+| 49 | GET | `/admin-api/projects/{project_id}/collections/{collection_id}/entries/usage` | **查询内容被引用数量**（通用引用统计，全项目生效） | Query: `ids`: string（逗号分隔内容 ID，必填） |
+
+> **删除保护**：`move-to-trash`、`delete`、`move-to-trash-selected`、`delete-selected` 等删除接口，若目标内容被**单选 relation 字段**（`options.relation.type = "1"`，如分类）引用，返回 `422` + `message`，不执行删除；**多选 relation 字段**（`type = "2"`，如标签）仍走级联清理，不拦截。
 
 ##### ✅ 响应
 
@@ -325,8 +327,6 @@ curl -X POST "https://backend.com/admin-api/projects/4/collections/18/entries/up
 - 多值以逗号分隔字符串写入 `content_meta`，与前台 API 多值字段格式一致。
 - 单事务写入；每条成功更新会 `touch` 内容并写审计日志（action = `bulk_update_field`，记录 field、value、条数）。
 
-=======
->>>>>>> 942e28fa2ada62835945623ec038b34a695f9a0b
 ***
 
 ## 参数说明

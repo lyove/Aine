@@ -49,6 +49,7 @@
                 <th class="px-4 py-3 font-medium">{{ __('Name') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Slug') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Color') }}</th>
+                <th class="px-4 py-3 font-medium">{{ __('Usage') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Description') }}</th>
                 <th class="px-4 py-3 text-right font-medium">{{ __('Actions') }}</th>
               </tr>
@@ -68,6 +69,13 @@
                 <td class="px-4 py-3">
                   <span v-if="row.color" class="rounded bg-gray-50 px-2 py-0.5 font-mono text-xs text-gray-500">{{ row.color }}</span>
                   <span v-else class="text-xs text-gray-300">—</span>
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    v-if="row.usage"
+                    class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-500"
+                  >{{ row.usage }}</span>
+                  <span v-else class="text-xs text-gray-300">0</span>
                 </td>
                 <td class="max-w-xs truncate px-4 py-3 text-gray-500">{{ row.description || '—' }}</td>
                 <td class="px-4 py-3">
@@ -232,11 +240,27 @@ export default {
           slug: metaValue(row, "slug"),
           color: metaValue(row, "color"),
           description: metaValue(row, "description"),
+          usage: 0,
         }));
+        await loadUsage(rows.value.map((r) => r.id));
       } catch (e) {
         console.error("load categories failed:", e);
       } finally {
         loading.value = false;
+      }
+    }
+
+    // Fetch reference counts for the current page through the generic usage endpoint.
+    async function loadUsage(ids) {
+      if (!ids.length) return;
+      try {
+        const { data } = await axios.get(`projects/${pid}/collections/${cid}/entries/usage`, {
+          params: { ids: ids.join(",") },
+        });
+        const u = data.usage || {};
+        rows.value = rows.value.map((r) => ({ ...r, usage: u[r.id] ? u[r.id].total : 0 }));
+      } catch (e) {
+        // Counting failure must not block the page
       }
     }
 
@@ -255,7 +279,8 @@ export default {
         toast.success(__("Moved to trash."));
         reload();
       } catch (e) {
-        toast.error(__("Failed to move to trash."));
+        const msg = e.response && e.response.data && e.response.data.message;
+        toast.error(msg ? __(msg, e.response.data) : __("Failed to move to trash."));
       }
     }
 

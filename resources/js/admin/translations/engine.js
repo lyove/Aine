@@ -223,7 +223,7 @@ export function __(key, ...args) {
     }
     const translation = dictView.project[key] || dictView.ui[key];
     if (!translation || translation === key) {
-        return key;
+        return args.length ? fillPlaceholders(translation || key, args[0]) : key;
     }
     if (args.length) {
         // The first arg is the params object; later args are ignored (kept
