@@ -605,11 +605,6 @@ export default {
     function handleDocumentClick() {
       if (catFilterOpen.value) {
         catFilterOpen.value = false;
-        if (selectedCatIds.value.length) {
-          selectedCatIds.value = [];
-          catFilterSearch.value = "";
-          reload(1);
-        }
       }
     }
     function openBulkCategoryModal() {
@@ -805,7 +800,8 @@ export default {
             sbm: 1,
             each: each.value,
             getItems: getItems.value,
-            filters: selectedCatIds.value.length ? { category: selectedCatIds.value.join(",") } : undefined,
+            // 用扁平 key 直接拼成 filters[category]=...，避免 axios 嵌套对象序列化歧义
+            "filters[category]": selectedCatIds.value.length ? selectedCatIds.value.join(",") : undefined,
           },
         });
         if (!project.value?.id) project.value = data.project;
