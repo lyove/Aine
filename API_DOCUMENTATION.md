@@ -282,6 +282,7 @@ Origin: https://your-frontend.com
 | 前台互动（收藏/点赞/评论/个人中心） | 13 | 0 |
 | **总计** | **27** | **13** |
 
+<<<<<<< HEAD
 > 注：后台另有"批量操作"接口 6 个（见下方方式 4），走 Session Cookie 认证，不计入上表方式 1 / 方式 2 统计。
 
 ### 方式 4：后台管理接口（Admin API）
@@ -324,6 +325,8 @@ curl -X POST "https://backend.com/admin-api/projects/4/collections/18/entries/up
 - 多值以逗号分隔字符串写入 `content_meta`，与前台 API 多值字段格式一致。
 - 单事务写入；每条成功更新会 `touch` 内容并写审计日志（action = `bulk_update_field`，记录 field、value、条数）。
 
+=======
+>>>>>>> 942e28fa2ada62835945623ec038b34a695f9a0b
 ***
 
 ## 参数说明

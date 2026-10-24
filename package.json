@@ -1,5 +1,8 @@
 {
+<<<<<<< HEAD
   "name": "aine",
+=======
+>>>>>>> 942e28fa2ada62835945623ec038b34a695f9a0b
   "private": true,
   "scripts": {
     "dev": "vite",

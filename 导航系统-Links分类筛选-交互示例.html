@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>导航系统 Links 列表 - 按分类筛选 交互示例</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f3f4f6; color: #1f2937; padding: 24px; }
+  .page { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 20px; color: #111827; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+  .note { background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 18px; line-height: 1.6; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid #f3f4f6; }
+  .search { display: flex; align-items: center; gap: 6px; border: 1px solid #d1d5db; border-radius: 8px; padding: 6px 10px; font-size: 13px; color: #9ca3af; background: #fff; width: 200px; }
+  .btn { border-radius: 8px; padding: 7px 12px; font-size: 13px; border: 1px solid #d1d5db; background: #fff; color: #374151; cursor: pointer; }
+  .btn.primary { background: #6366f1; color: #fff; border-color: #6366f1; }
+  .btn.sky { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
+  .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #f3f4f6; background: #fafafa; }
+  .chip { border-radius: 999px; padding: 5px 14px; font-size: 13px; border: 1px solid #d1d5db; background: #fff; color: #4b5563; cursor: pointer; }
+  .chip.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+  .chip.red { color: #dc2626; border-color: #fecaca; }
+  .chip.red.active { background: #dc2626; color: #fff; border-color: #dc2626; }
+  .filter-wrap { position: relative; }
+  .filter-trigger { display: flex; align-items: center; gap: 8px; border-radius: 8px; padding: 6px 12px; font-size: 13px; border: 1px solid #d1d5db; background: #fff; color: #374151; cursor: pointer; }
+  .filter-trigger .badge { background: #6366f1; color: #fff; border-radius: 999px; font-size: 11px; min-width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
+  .filter-trigger.active { border-color: #6366f1; color: #4f46e5; background: #eef2ff; }
+  .dropdown { display: none; position: absolute; top: 42px; left: 0; width: 260px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); z-index: 20; padding: 12px; }
+  .dropdown.open { display: block; }
+  .dropdown .d-search { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 6px 10px 6px 26px; font-size: 13px; outline: none; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%239ca3af" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>') no-repeat 8px center; }
+  .d-list { margin-top: 8px; max-height: 200px; overflow-y: auto; }
+  .d-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .d-item:hover { background: #f3f4f6; }
+  .d-item .dot { width: 10px; height: 10px; border-radius: 999px; flex-shrink: 0; }
+  .d-item .box { width: 15px; height: 15px; border: 1.5px solid #d1d5db; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; flex-shrink: 0; }
+  .d-item.on .box { background: #6366f1; border-color: #6366f1; }
+  .d-empty { padding: 18px 0; text-align: center; font-size: 13px; color: #9ca3af; }
+  .d-footer { margin-top: 8px; border-top: 1px solid #f3f4f6; padding-top: 8px; display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; }
+  .d-footer .clear { color: #dc2626; cursor: pointer; }
+  .sum { padding: 10px 16px; font-size: 12px; color: #6b7280; border-bottom: 1px solid #f3f4f6; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 16px; background: #f9fafb; font-size: 11px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.04em; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 11px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .link-cell { display: flex; align-items: center; gap: 10px; }
+  .fav { width: 32px; height: 32px; border-radius: 8px; background: #eef2ff; color: #6366f1; font-weight: 700; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .link-name { font-weight: 600; color: #111827; }
+  .link-url { font-size: 12px; color: #9ca3af; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 10px; font-size: 12px; }
+  .tag { background: #f3f4f6; color: #6b7280; border-radius: 6px; padding: 2px 7px; font-size: 11px; }
+  .pill-hidden { display: none; }
+  .empty { padding: 40px 0; text-align: center; color: #9ca3af; font-size: 13px; }
+  .empty i { font-size: 30px; display: block; margin-bottom: 8px; color: #d1d5db; }
+  .pag { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: 12px; color: #6b7280; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>导航系统 · Links 列表 — 按分类筛选（交互示例）</h1>
+  <p class="sub">原型演示：分类多选下拉 → 勾选后列表只显示属于所选分类的链接（可点击操作）</p>
+  <div class="note">新增点：状态标签行右侧的「分类筛选」多选下拉（带选中数徽标 + 清空按钮）。其余 UI（搜索、Check All、状态标签、勾选、批量栏）保持原样。</div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="search"><span>🔍</span> Search links...</div>
+      <button class="btn sky">Check All</button>
+      <button class="btn">Re-check Dead</button>
+      <button class="btn">⟳ Refresh</button>
+      <button class="btn primary">+ Add Link</button>
+    </div>
+
+    <div class="filter-row">
+      <button class="chip active" data-tab="all">All</button>
+      <button class="chip" data-tab="published">Published</button>
+      <button class="chip" data-tab="draft">Draft</button>
+      <button class="chip" data-tab="trashed">Trashed</button>
+      <button class="chip red">⚠ Dead</button>
+
+      <div class="filter-wrap" id="filterWrap">
+        <button class="filter-trigger" id="filterTrigger">
+          <span>🗂️</span> 分类筛选
+          <span class="badge" id="filterBadge" style="display:none;">0</span>
+          <span style="font-size:10px;color:#9ca3af;">▼</span>
+        </button>
+        <div class="dropdown" id="dropdown">
+          <input class="d-search" id="dSearch" placeholder="搜索分类...">
+          <div class="d-list" id="dList"></div>
+          <div class="d-empty" id="dEmpty" style="display:none;">没有找到分类</div>
+          <div class="d-footer">
+            <span id="selCount">已选 0 个分类</span>
+            <span class="clear" id="clearAll">清空筛选</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sum" id="summary">共 25 条链接 · 25 已发布</div>
+
+    <table>
+      <thead><tr><th>Link</th><th>Category</th><th>Tags</th><th>Click</th><th>Status</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="emptyRow" style="display:none;"><i>🔗</i>所选分类下没有链接</div>
+    <div class="pag"><span id="pageInfo">1–6 / 6</span><span>‹ ›</span></div>
+  </div>
+  <p class="sub" style="margin-top:14px;">* 原型数据为示意；真实页面分页 10 条/页，筛选由后端 SQL 完成后再分页，跨页不漏数据。</p>
+</div>
+
+<script>
+const CATS = [
+  { id: 339, name: "开发工具", color: "#3b82f6" },
+  { id: 340, name: "设计资源", color: "#ec4899" },
+  { id: 341, name: "学习社区", color: "#8b5cf6" },
+  { id: 342, name: "技术社区", color: "#ef4444" },
+  { id: 343, name: "效率办公", color: "#10b981" },
+];
+const LINKS = [
+  { name: "GitHub", url: "https://github.com", cats: [342], tags: ["git", "code"], fav: "G", featured: true },
+  { name: "Dribbble", url: "https://dribbble.com", cats: [340], tags: ["design"], fav: "D", featured: true },
+  { name: "哔哩哔哩", url: "https://www.bilibili.com", cats: [341, 342], tags: ["video"], fav: "哔", featured: true },
+  { name: "Notion", url: "https://www.notion.so", cats: [343], tags: ["notes"], fav: "N", featured: true },
+  { name: "Stack Overflow", url: "https://stackoverflow.com", cats: [342], tags: ["code"], fav: "S", featured: false },
+  { name: "Figma", url: "https://www.figma.com", cats: [340, 343], tags: ["design"], fav: "F", featured: false },
+];
+let selected = new Set();
+let dq = "";
+
+const $ = (s) => document.querySelector(s);
+const catName = (id) => { const c = CATS.find((x) => x.id === id); return c ? c.name : id; };
+const catColor = (id) => { const c = CATS.find((x) => x.id === id); return c ? c.color : "#999"; };
+
+function renderList() {
+  const rows = LINKS.filter((l) => selected.size === 0 || l.cats.some((c) => selected.has(c)));
+  const tb = $("#tbody");
+  tb.innerHTML = "";
+  rows.forEach((l) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><div class="link-cell"><div class="fav" style="background:${catColor(l.cats[0])}1a;color:${catColor(l.cats[0])}">${l.fav}</div>
+      <div><div class="link-name">${l.name}${l.featured ? ' <span class="tag" style="background:#fef3c7;color:#b45309;">Featured</span>' : ""}</div>
+      <div class="link-url">${l.url}</div></div></div></td>
+      <td>${l.cats.map((c) => `<span class="pill" style="background:${catColor(c)}1a;color:${catColor(c)};"><span style="width:6px;height:6px;border-radius:50%;background:${catColor(c)};display:inline-block;"></span>${catName(c)}</span>`).join(" ")}</td>
+      <td>${l.tags.map((t) => `<span class="tag">#${t}</span>`).join(" ")}</td>
+      <td><span class="pill" style="background:#eef2ff;color:#4f46e5;">Detail page</span></td>
+      <td><span class="pill" style="background:#d1fae5;color:#059669;">Published</span></td>`;
+    tb.appendChild(tr);
+  });
+  $("#emptyRow").style.display = rows.length ? "none" : "block";
+  $("#summary").textContent = selected.size
+    ? `已按 ${selected.size} 个分类筛选 · 显示 ${rows.length} 条（跨页数据由后端过滤，分页数正确）`
+    : `共 ${LINKS.length} 条链接 · 25 已发布`;
+  $("#pageInfo").textContent = `1–${rows.length} / ${rows.length}`;
+  const badge = $("#filterBadge");
+  badge.style.display = selected.size ? "inline-flex" : "none";
+  badge.textContent = selected.size;
+  $("#filterTrigger").classList.toggle("active", selected.size > 0);
+}
+
+function renderCats() {
+  const q = dq.toLowerCase();
+  const list = CATS.filter((c) => c.name.toLowerCase().includes(q));
+  const el = $("#dList");
+  el.innerHTML = "";
+  list.forEach((c) => {
+    const d = document.createElement("div");
+    d.className = "d-item" + (selected.has(c.id) ? " on" : "");
+    d.innerHTML = `<span class="box" style="${selected.has(c.id) ? 'background:#6366f1;border-color:#6366f1;' : ''}">${selected.has(c.id) ? "✓" : ""}</span><span class="dot" style="background:${c.color}"></span>${c.name}`;
+    d.onclick = (e) => { e.stopPropagation(); selected.has(c.id) ? selected.delete(c.id) : selected.add(c.id); renderCats(); renderList(); };
+    el.appendChild(d);
+  });
+  $("#dEmpty").style.display = list.length ? "none" : "block";
+  $("#selCount").textContent = `已选 ${selected.size} 个分类`;
+}
+
+$("#filterTrigger").onclick = (e) => { e.stopPropagation(); $("#dropdown").classList.toggle("open"); };
+document.addEventListener("click", () => $("#dropdown").classList.remove("open"));
+$("#dSearch").oninput = (e) => { dq = e.target.value; renderCats(); };
+$("#clearAll").onclick = () => { selected.clear(); dq = ""; $("#dSearch").value = ""; renderCats(); renderList(); };
+
+document.querySelectorAll(".chip[data-tab]").forEach((b) => b.onclick = () => {
+  document.querySelectorAll(".chip[data-tab]").forEach((x) => x.classList.remove("active"));
+  b.classList.add("active");
+});
+
+renderCats();
+renderList();
+</script>
+</body>
+</html>
