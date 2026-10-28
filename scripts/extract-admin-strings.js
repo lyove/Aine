@@ -11,6 +11,11 @@ const ROOT = path.resolve(__dirname, "..");
 const ADMIN_DIR = path.join(ROOT, "resources", "js", "admin");
 const OUT = path.join(ROOT, "database", "seeders", "data", "admin_strings.php");
 
+if (!fs.existsSync(ADMIN_DIR)) {
+    console.error(`Admin source directory not found: ${ADMIN_DIR}`);
+    process.exit(1);
+}
+
 // Pure-uppercase HTML tag constants used in engine checks (e.g. "SCRIPT").
 const HTML_TAGS = new Set([
     "A","ABBR","ADDRESS","AREA","ARTICLE","ASIDE","AUDIO","B","BASE","BDI","BDO",
@@ -48,9 +53,11 @@ function stripComments(src) {
     while (i < n) {
         const c = src[i];
         const next = src[i + 1];
-        if (c === "/" && next === "/") {
+        // A slash preceded by a backslash belongs to a regex literal
+        // (e.g. /^https?:\/\//), not to a comment opener.
+        if (c === "/" && next === "/" && src[i - 1] !== "\\") {
             while (i < n && src[i] !== "\n") i++;
-        } else if (c === "/" && next === "*") {
+        } else if (c === "/" && next === "*" && src[i - 1] !== "\\") {
             i += 2;
             while (i < n && !(src[i] === "*" && src[i + 1] === "/")) i++;
             i += 2;
@@ -135,15 +142,7 @@ function collectVue(file) {
         //    (e.g. "...(Listings, Categories, ...)") don't break the match.
         const callRe = /__\(\s*(['"])((?:\\.|(?!\1)[^\\\n]){2,120})\1/g;
         while ((m = callRe.exec(html)) !== null) {
-            const clean = m[2]
-                .replace(/\\(['"\\nrt])/g, (_, c) => {
-                    if (c === "n") return "\n";
-                    if (c === "r") return "\r";
-                    if (c === "t") return "\t";
-                    return c;
-                })
-                .replace(/\s+/g, " ")
-                .trim();
+            const clean = cleanLiteral(m[2]);
             if (isMeaningful(clean)) strings.add(clean);
         }
 
@@ -155,7 +154,7 @@ function collectVue(file) {
         }
     }
 
-    // 4) Human-readable strings in the <script> block
+    // 6) Human-readable strings in the <script> block
     const scriptStart = src.indexOf("<script");
     const scriptEnd = src.lastIndexOf("</script>");
     if (scriptStart !== -1 && scriptEnd > scriptStart) {
@@ -163,20 +162,26 @@ function collectVue(file) {
     }
 }
 
+/** Unescape a JS string body and collapse whitespace, so equivalent copy
+ *  (e.g. "a\nb" vs "a b") maps to a single registry entry. */
+function cleanLiteral(raw) {
+    return raw
+        .replace(/\\(['"`\\nrt])/g, (_, c) => {
+            if (c === "n") return "\n";
+            if (c === "r") return "\r";
+            if (c === "t") return "\t";
+            return c;
+        })
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 /** Extract quoted string literals from a snippet and add meaningful ones. */
 function collectLiterals(snippet, allowLowercaseToken = false) {
     const litRe = /(['"])((?:\\.|(?!\1)[^\\\n])*?)\1/g;
     let m;
     while ((m = litRe.exec(snippet)) !== null) {
-        const clean = m[2]
-            .replace(/\\(['"\\nrt])/g, (_, c) => {
-                if (c === "n") return "\n";
-                if (c === "r") return "\r";
-                if (c === "t") return "\t";
-                return c;
-            })
-            .replace(/\s+/g, " ")
-            .trim();
+        const clean = cleanLiteral(m[2]);
         if (isMeaningful(clean, allowLowercaseToken)) strings.add(clean);
     }
 }
@@ -190,18 +195,11 @@ function collectStrings(js) {
     const strRe = /(['"`])((?:\\[\s\S]|(?!\1)[^\\\n])*)\1/g;
     let m;
     while ((m = strRe.exec(js)) !== null) {
-        let body = m[2];
-        if (!body) continue;
-        const clean = body
-            .replace(/\\(['"`\\nrt])/g, (_, c) => {
-                if (c === "n") return "\n";
-                if (c === "r") return "\r";
-                if (c === "t") return "\t";
-                return c;
-            })
-            .replace(/\$\{([^}]*)\}/g, (_, expr) => normalizeInterpolation(expr)) // interpolated template literals
-            .replace(/\s+/g, " ")
-            .trim();
+        if (!m[2]) continue;
+        const clean = cleanLiteral(m[2]).replace(
+            /\$\{([^}]*)\}/g,
+            (_, expr) => normalizeInterpolation(expr) // interpolated template literals
+        );
         if (isMeaningful(clean)) strings.add(clean);
     }
 }
@@ -279,7 +277,10 @@ function isMeaningful(s, allowLowercaseToken = false) {
             if (allowLowercaseToken && /^[A-Z][A-Za-z]*-[A-Za-z]+$/.test(compact)) return true;
             return false;     // "X-Csrf-Token"
         }
-        if (/^[A-Za-z]+$/.test(compact) && compact.length > 12) return false; // component names / charsets
+        // Long single words are only dropped when they look like identifiers
+        // (internal capital, e.g. "ContentTable"); plain labels such as
+        // "Notifications" or "Administration" must be kept.
+        if (/^[A-Za-z]+$/.test(compact) && compact.length > 12 && /[A-Z]/.test(compact.slice(1))) return false;
         return true;
     }
     // Has whitespace: drop all-lowercase kebab strings such as
@@ -302,7 +303,8 @@ for (const bad of BLACKLIST) {
     strings.delete(bad);
 }
 
-const sorted = [...strings].sort((a, b) => a.localeCompare(b));
+// Fixed locale keeps the output byte-identical across machines.
+const sorted = [...strings].sort((a, b) => a.localeCompare(b, "en"));
 
 // Preserve the hand-maintained tail of 'sources' (backend PHP strings, theme
 // metadata and other strings the extractor cannot see). Re-running the
@@ -311,7 +313,9 @@ const sorted = [...strings].sort((a, b) => a.localeCompare(b));
 const existing = fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf8") : "";
 
 function parseOldSources(fileText) {
-    const m = fileText.match(/'sources' => \[\n([\s\S]*?)\n    \],\n    'defaults' => \[/);
+    // End the match at the 'sources' array closer, not at the 'defaults'
+    // block: a missing/reformatted defaults block must not drop manual entries.
+    const m = fileText.match(/'sources' => \[\n([\s\S]*?)\n    \],/);
     if (!m) return [];
     const out = [];
     const lineRe = /^\s*'((?:\\.|[^'\\])*)',?$/gm;
@@ -336,14 +340,24 @@ const phpLines = [...sorted, ...manual].map((s) => {
 });
 
 // Preserve the hand-maintained 'defaults' block (factory default
-// translations, e.g. zh) verbatim across runs.
-let defaultsBlock = "";
-const dIdx = existing.indexOf("    'defaults' => [");
-if (dIdx !== -1) {
-    defaultsBlock = existing.slice(dIdx);
-} else {
-    defaultsBlock = "    'defaults' => [\n        // 'zh' => [\n        //     'Some English string' => 'Chinese translation',\n        // ],\n    ],\n";
+// translations, e.g. zh) verbatim across runs. The closing "];" is appended
+// by the template below, so a missing or malformed old file still yields
+// valid PHP.
+function extractDefaultsBlock(fileText) {
+    const start = fileText.indexOf("    'defaults' => [");
+    const end = fileText.lastIndexOf("];");
+    if (start === -1 || end <= start) return null;
+    return fileText.slice(start, end).trimEnd();
 }
+
+const defaultsBlock = extractDefaultsBlock(existing) ||
+    [
+        "    'defaults' => [",
+        "        // 'zh' => [",
+        "        //     'Some English string' => 'Chinese translation',",
+        "        // ],",
+        "    ],",
+    ].join("\n");
 
 const php = `<?php
 
@@ -370,8 +384,11 @@ return [
     'sources' => [
 ${phpLines.join(",\n")}
     ],
-${defaultsBlock}`;
+${defaultsBlock}
+];
+`;
 
+fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, php);
 console.log(`Extracted ${sorted.length} strings (+${manual.length} preserved manual) -> database/seeders/data/admin_strings.php`);
 console.log(`Sync the registry into the database with:  php artisan db:seed --class=AdminTranslationsSeeder`);
