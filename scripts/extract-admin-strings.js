@@ -190,7 +190,6 @@ function collectStrings(js) {
     const strRe = /(['"`])((?:\\[\s\S]|(?!\1)[^\\\n])*)\1/g;
     let m;
     while ((m = strRe.exec(js)) !== null) {
-        const quote = m[1];
         let body = m[2];
         if (!body) continue;
         const clean = body
@@ -293,7 +292,9 @@ walk(ADMIN_DIR);
 // Admin entry file lives outside resources/js/admin
 {
     const entry = path.join(ROOT, "resources", "js", "admin.js");
-    if (fs.existsSync(entry)) collectStrings(stripComments(fs.readFileSync(entry, "utf8")));
+    if (fs.existsSync(entry)) {
+        collectStrings(stripComments(fs.readFileSync(entry, "utf8")));
+    }
 }
 
 // Drop known non-UI strings (component names, data values, DOM fragments).

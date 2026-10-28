@@ -99,7 +99,7 @@ import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 
-import ContentTable from "./ContentTable.vue";
+import ContentTable from "./Table.vue";
 import TextModal from "./TextModal.vue";
 import MediaModal from "./MediaModal.vue";
 import RelationModal from "./RelationModal.vue";
