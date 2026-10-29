@@ -150,6 +150,12 @@ export default {
 
     created() {
         this.setTopbar();
+        const store = useAdminStore();
+        this.$watch(
+            () => store.currentCollection,
+            () => this.setTopbar(),
+            { deep: true }
+        );
     },
 
     watch: {
