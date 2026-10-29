@@ -95,31 +95,29 @@ export default {
 </script>
 
 <style scoped>
-/* Collapse toggle button - subtle, blends with sidebar edge */
+/* Collapse toggle button — visible but not obtrusive */
 .admin__sidebar-toggle {
     position: fixed;
     top: 3.25rem;
     z-index: 60;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #1f2937;
-    color: #6b7280;
-    border: 1px solid #374151;
+    background-color: #334155;
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 50%;
     cursor: pointer;
-    transition: all 0.25s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-    opacity: 0.9;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .admin__sidebar-toggle:hover {
-    background-color: #374151;
-    color: #d1d5db;
-    border-color: #4b5563;
-    opacity: 1;
+    background-color: #475569;
+    color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(255, 255, 255, 0.25);
 }
 
 .admin__route-loading {
