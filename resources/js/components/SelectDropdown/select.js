@@ -93,6 +93,7 @@ export default {
       if (this.open) {
         const len = this.filteredOptions.length;
         this.highlightIndex = len ? 0 : -1;
+        this.$nextTick(() => this.updatePosition());
       }
     },
   },
