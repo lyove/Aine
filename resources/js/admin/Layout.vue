@@ -112,7 +112,7 @@ export default {
     cursor: pointer;
     transition: all 0.25s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-    opacity: 0.7;
+    opacity: 0.9;
 }
 
 .admin__sidebar-toggle:hover {
