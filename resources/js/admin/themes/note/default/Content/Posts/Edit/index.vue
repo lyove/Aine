@@ -866,7 +866,7 @@ import MediaLibrary from "@/admin/components/MediaLibrary.vue";
 import SelectDropdown from "@/components/SelectDropdown";
 import RevisionsModal from "@/admin/components/RevisionsModal.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
-import List from "../List.vue";
+import List from "../List/index.vue";
 
 import localesJson from "@/locales.json";
 import { useAdminStore } from "@/admin/store";

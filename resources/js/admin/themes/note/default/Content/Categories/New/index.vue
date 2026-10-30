@@ -711,7 +711,7 @@ import UiDropdown from "@/components/Dropdown.vue";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import MediaLibrary from "@/admin/components/MediaLibrary.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
-import List from "../List.vue";
+import List from "../List/index.vue";
 
 import { __ } from '@/admin/translations/engine';
 import localesJson from "@/locales.json";
