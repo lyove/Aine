@@ -15,31 +15,31 @@ import { COLLECTION_CONTENT_ROUTES, KNOWN_PROJECT_ROUTES } from '../routes';
 
 // Default fallback views
 const defaultViews = {
-    'projects.collections':         () => import('./views/Project.Collections/Collection/Index.vue'),
-    'projects.collections.fields':                  () => import('./views/Project.Collections/Collection/List.vue'),
-    'projects.collections.content.list':            () => import('./views/Project.Collections/Content/List.vue'),
-    'projects.collections.content.new':             () => import('./views/Project.Collections/Content/New.vue'),
-    'projects.collections.content.edit':            () => import('./views/Project.Collections/Content/Edit.vue'),
-    'projects.collections.content.forms':           () => import('./views/Project.Collections/Content/Forms.vue'),
-    'projects.collections.content.forms.detail':    () => import('./views/Project.Collections/Content/FormsDetail.vue'),
-    'projects.media_library':       () => import('./views/Project.Collections/Media/Index.vue'),
-    'projects.settings':            () => import('./views/Project.Settings/Index.vue'),
-    'projects.settings.preferences':() => import('./views/Project.Settings/Preferences.vue'),
-    'projects.settings.locales':    () => import('./views/Project.Settings/Locales.vue'),
-    'projects.settings.users':      () => import('./views/Project.Settings/Users.vue'),
-    'projects.settings.api':        () => import('./views/Project.Settings/API.vue'),
-    'projects.settings.webhooks':   () => import('./views/Project.Settings/Webhooks.vue'),
-    'projects.settings.webhooks.logs': () => import('./views/Project.Settings/WebhookLogs.vue'),
-    'projects.settings.translations':  () => import('./views/Project.Settings/Translations.vue'),
-    'projects.settings.language':      () => import('./views/Project.Settings/Language.vue'),
-    'projects.settings.audit-logs':    () => import('./views/Project.Settings/AuditLogs.vue'),
+    'projects.collections':         () => import('../views/Project.Collections/Collection/Index.vue'),
+    'projects.collections.fields':                  () => import('../views/Project.Collections/Collection/List.vue'),
+    'projects.collections.content.list':            () => import('../views/Project.Collections/Content/List.vue'),
+    'projects.collections.content.new':             () => import('../views/Project.Collections/Content/New.vue'),
+    'projects.collections.content.edit':            () => import('../views/Project.Collections/Content/Edit.vue'),
+    'projects.collections.content.forms':           () => import('../views/Project.Collections/Content/Forms.vue'),
+    'projects.collections.content.forms.detail':    () => import('../views/Project.Collections/Content/FormsDetail.vue'),
+    'projects.media_library':       () => import('../views/Project.Collections/Media/Index.vue'),
+    'projects.settings':            () => import('../views/Project.Settings/Index.vue'),
+    'projects.settings.preferences':() => import('../views/Project.Settings/Preferences.vue'),
+    'projects.settings.locales':    () => import('../views/Project.Settings/Locales.vue'),
+    'projects.settings.users':      () => import('../views/Project.Settings/Users.vue'),
+    'projects.settings.api':        () => import('../views/Project.Settings/API.vue'),
+    'projects.settings.webhooks':   () => import('../views/Project.Settings/Webhooks.vue'),
+    'projects.settings.webhooks.logs': () => import('../views/Project.Settings/WebhookLogs.vue'),
+    'projects.settings.translations':  () => import('../views/Project.Settings/Translations.vue'),
+    'projects.settings.language':      () => import('../views/Project.Settings/Language.vue'),
+    'projects.settings.audit-logs':    () => import('../views/Project.Settings/AuditLogs.vue'),
 };
 
 // Theme registry: from manifest.json via themeEngine (runtime)
 const runtimeRegistry = {};
 
 // Pre-resolved theme components via Vite glob
-const themeModuleMap = import.meta.glob('./themes/**/*.vue');
+const themeModuleMap = import.meta.glob('../themes/**/*.vue');
 
 /**
  * Register a theme at runtime (from manifest.json via themeEngine).
