@@ -456,7 +456,9 @@ export default {
                     }
                 });
 
-                this.setTopbar();
+                if (this.$route.meta) {
+                    this.$route.meta.dynamicBreadcrumb = { Form: (this.form && this.form.name) || 'Form' };
+                }
             });
         },
 
