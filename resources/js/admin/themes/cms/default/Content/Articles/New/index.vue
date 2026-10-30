@@ -837,7 +837,6 @@ import List from "../List/index.vue";
 
 import { __ } from '@/admin/translations/engine';
 import localesJson from "@/locales.json";
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 import { useAdminStore } from "@/admin/store";
 
 export default {
@@ -855,7 +854,6 @@ export default {
         SelectDropdown,
     },
 
-    mixins: [projectBreadcrumb],
 
     data() {
         return {
