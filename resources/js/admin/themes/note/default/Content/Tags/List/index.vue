@@ -533,7 +533,6 @@ import UiDropdown from '@/components/Dropdown.vue';
 
 import ProjectHeader from '@/admin/components/ProjectHeader.vue';
 import CollectionSidebar from '@/admin/components/CollectionSidebar.vue';
-import projectBreadcrumb from '@/admin/mixins/projectBreadcrumb';
 
 /**
  * Normalize a project's `locales` attribute (comma-separated string or
@@ -1276,7 +1275,6 @@ export default {
         UiDropdown,
     },
 
-    mixins: [projectBreadcrumb],
 
     props: {
         relationSelect: {
