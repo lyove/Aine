@@ -95,7 +95,7 @@ export default {
 </script>
 
 <style scoped>
-/* Collapse toggle button — visible but not obtrusive */
+/* Collapse toggle button */
 .admin__sidebar-toggle {
     position: fixed;
     top: 3.25rem;
