@@ -189,6 +189,7 @@ import Brand from "@/admin/components/Brand.vue";
 
 import checkRole from "@/utils/checkrole";
 import { useAdminStore } from "@/admin/store";
+import { GROUP } from "@/admin/routes";
 
 export default {
     components: {
@@ -244,27 +245,25 @@ export default {
         },
 
         isProjectsActive() {
-            const name = this.$route.name;
-            return name === 'projects' || (name && name.startsWith('projects.'));
+            const group = this.$route.meta && this.$route.meta.group;
+            return group === GROUP.PROJECTS || group === GROUP.COLLECTIONS || group === GROUP.SETTINGS || group === GROUP.MEDIA;
         },
 
         isLanguageActive() {
-            return this.$route.name === 'language';
+            return (this.$route.meta && this.$route.meta.group) === GROUP.LANGUAGE;
         },
 
         isCollectionsActive() {
-            const name = this.$route.name;
-            return name === 'projects.collections' || (name && name.startsWith('projects.collections.'));
+            return (this.$route.meta && this.$route.meta.group) === GROUP.COLLECTIONS;
         },
 
         isContentActive() {
-            const name = this.$route.name;
-            return name && name.startsWith('projects.collections.content.');
+            const meta = this.$route.meta || {};
+            return meta.group === GROUP.COLLECTIONS && meta.subkind === 'content';
         },
 
         isSettingsActive() {
-            const name = this.$route.name;
-            return name === 'projects.settings' || (name && name.startsWith('projects.settings.'));
+            return (this.$route.meta && this.$route.meta.group) === GROUP.SETTINGS;
         },
 
         isProjectPage() {
@@ -297,8 +296,8 @@ export default {
 
     watch: {
         '$route'(to) {
-            const name = to.name;
-            if (name && (name.startsWith('projects.collections') || name.startsWith('projects.content') || name.startsWith('projects.settings'))) {
+            const group = to.meta && to.meta.group;
+            if (group === GROUP.COLLECTIONS || group === GROUP.SETTINGS || group === GROUP.MEDIA) {
                 this.projectExpanded = true;
             }
         },

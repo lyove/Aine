@@ -1,14 +1,107 @@
 import { createRouter, createWebHistory, useRoute } from 'vue-router';
 import { defineComponent, ref, watch, h, onMounted } from 'vue';
 import { useAdminStore } from './store';
-import { resolveView, resolveContentView } from './viewRegistry';
+import { resolveView, resolveContentView } from './services/viewRegistry';
 import Swal from 'sweetalert2';
 import { __ } from "@/admin/translations/engine";
 
+// ── Route constants ────────────────────────────────────────────────
+
+/**
+ * Sidebar group identifiers (used by meta.group).
+ * The sidebar reads these to decide which menu item is active.
+ */
+export const GROUP = Object.freeze({
+    DASHBOARD: 'dashboard',
+    PROJECTS: 'projects',
+    COLLECTIONS: 'collections',
+    SETTINGS: 'settings',
+    MEDIA: 'media',
+    LANGUAGE: 'language',
+    USERS: 'users',
+    PROFILE: 'profile',
+    TRANSLATIONS: 'translations',
+    LOCALIZATION: 'localization',
+    SITE_SETTINGS: 'site_settings',
+});
+
+/**
+ * Sub-kind identifiers for collection-related routes.
+ * The CollectionSidebar uses these to differentiate "content" vs "fields"
+ * highlighting without hard-coding route names.
+ */
+export const SUBKIND = Object.freeze({
+    CONTENT: 'content',
+    FIELDS: 'fields',
+    FORMS: 'forms',
+});
+
+/**
+ * Breadcrumb segment types stored in meta.breadcrumb[].
+ *
+ * Each segment is a plain object:
+ *
+ *   { label }                            → fixed label (goes through __())
+ *   { label, route, icon? }              → clickable (non-last) link
+ *   { fromStore, route?, icon? }         → reads store[currentCollection].name etc.
+ *   { dynamicKey, icon? }               → reads route.meta.dynamicBreadcrumb[dynamicKey]
+ *
+ * Example:
+ *   meta: {
+ *     breadcrumb: [
+ *       { label: 'Collections', route: 'projects.collections', icon: 'fa fa-table' },
+ *       { fromStore: { key: 'currentCollection', field: 'name' }, icon: 'fa fa-folder' },
+ *       { label: 'Edit Content', icon: 'fa fa-pen' },
+ *     ],
+ *     dynamicBreadcrumb: { Form: 'My Great Form' },  // set by component
+ *   }
+ */
+
+/**
+ * Route names that accept collection-aware theme view overrides.
+ * viewRegistry uses this set to validate manifest keys.
+ */
+export const COLLECTION_CONTENT_ROUTES = Object.freeze([
+    'projects.collections.content.list',
+    'projects.collections.content.new',
+    'projects.collections.content.edit',
+]);
+
+/**
+ * All known project route names — used by viewRegistry to validate
+ * manifest view_overrides keys at registration time.
+ */
+export const KNOWN_PROJECT_ROUTES = Object.freeze([
+    'projects.index',
+    'projects.collections',
+    'projects.collections.fields',
+    'projects.collections.content.list',
+    'projects.collections.content.new',
+    'projects.collections.content.edit',
+    'projects.collections.content.forms',
+    'projects.collections.content.forms.detail',
+    'projects.media_library',
+    'projects.settings',
+    'projects.settings.preferences',
+    'projects.settings.locales',
+    'projects.settings.users',
+    'projects.settings.api',
+    'projects.settings.webhooks',
+    'projects.settings.webhooks.logs',
+    'projects.settings.translations',
+    'projects.settings.language',
+    'projects.settings.audit-logs',
+    'projects.settings.themes',
+]);
+
+// ── Route definitions ───────────────────────────────────────────────
+
 /**
  * Create a project-UI-aware route component.
+ * collection slug from store.currentCollection and pick the matching theme
+ * view override via resolveContentView.
  */
-function projectUiView(routeName, options = {}) {
+function projectUiView(routeName) {
     return defineComponent({
         name: `ProjectUiView_${routeName.replace(/\./g, '_')}`,
         setup() {
@@ -25,7 +118,7 @@ function projectUiView(routeName, options = {}) {
                     const uiSlug = store.currentProject?.theme?.slug || null;
                     let loader;
 
-                    if (options.collectionAware) {
+                    if (route.meta.collectAware) {
                         const cid = route.params.col_id;
                         let collectionSlug = null;
                         if (cid) {
@@ -64,7 +157,7 @@ function projectUiView(routeName, options = {}) {
             onMounted(load);
 
             watch(
-                () => [store.currentProject?.theme?.slug, options.collectionAware ? route.params.col_id : null],
+                () => [store.currentProject?.theme?.slug, route.meta.collectAware ? route.params.col_id : null],
                 load
             );
 
@@ -87,51 +180,6 @@ function projectUiView(routeName, options = {}) {
     });
 }
 
-/**
- * Route Guard Function
- */
-const checkPermission = async (to, from, next, options = {}) => {
-    const store = useAdminStore();
-
-    if (!store.user.roles || store.user.roles.length === 0) {
-        await store.getUser();
-    }
-
-    const roles = store.user.roles;
-    const { requireSuperAdmin = false, requiredRoles = [], requiredProjectRoles = [], redirectTo = null } = options;
-
-    const pass = () => {
-        if (redirectTo) {
-            return next({ name: redirectTo, params: { project_id: to.params.project_id } });
-        }
-        return next();
-    };
-
-    if (roles.includes("super_admin")) {
-        return pass();
-    }
-
-    if (requireSuperAdmin) {
-        return next("/");
-    }
-
-    if (requiredRoles.length > 0) {
-        const hasRole = requiredRoles.some(role => roles.includes(role));
-        if (!hasRole) {
-            return next("/");
-        }
-    }
-
-    if (requiredProjectRoles.length > 0) {
-        const myRole = store.currentProject && store.currentProject.my_role;
-        if (!requiredProjectRoles.includes(myRole)) {
-            return next("/");
-        }
-    }
-
-    return pass();
-};
-
 // Non-project routes (global, not UI-aware)
 const Dashboard = () => import("./views/Dashboard.vue");
 const Settings = () => import("./views/Settings.vue");
@@ -144,195 +192,372 @@ const Projects = () => import("./views/Projects.vue");
 
 /**
  * Routes
+ *
+ * meta fields:
+ *   breadcrumb       - Segment[]   (breadcrumb trail, read by useBreadcrumb)
+ *   projectRoles     - string[]    (project-level roles required)
+ *   projectRedirect  - routeName   (redirect after permission pass)
+ *   group            - GROUP       (sidebar active-state group)
+ *   subkind          - SUBKIND     (CollectionSidebar content/fields distinction)
+ *   collectAware     - boolean     (load collection context AND resolve theme view via resolveContentView)
+ *   loadCollection   - boolean     (load collection context only, for breadcrumb/ProjectHeader, no theme view override)
  */
 const routes = [
-  { path: "/", name: "dashboard", component: Dashboard },
-  { path: "/settings", name: "settings", component: Settings },
-  { path: "/users", name: "users", component: Users },
-  { path: "/language", name: "language", component: Language },
-  { path: "/localization", name: "localization", component: Localization },
-  { path: "/translations", name: "translations", component: Translations },
-  { path: "/profile", name: "profile", component: Profile },
-  { path: "/projects/", name: "projects", component: Projects },
+  {
+    path: "/",
+    name: "dashboard",
+    component: Dashboard,
+    meta: {
+      group: GROUP.DASHBOARD,
+    },
+  },
+  {
+    path: "/settings",
+    name: "settings",
+    component: Settings,
+    meta: {
+      group: GROUP.SITE_SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', icon: 'fa fa-cog' },
+      ],
+    },
+  },
+  {
+    path: "/users",
+    name: "users",
+    component: Users,
+    meta: {
+      group: GROUP.USERS,
+    },
+  },
+  {
+    path: "/language",
+    name: "language",
+    component: Language,
+    meta: {
+      group: GROUP.LANGUAGE,
+      breadcrumb: [
+        { label: 'Language', icon: 'fas fa-language' },
+      ],
+    },
+  },
+  {
+    path: "/localization",
+    name: "localization",
+    component: Localization,
+    meta: {
+      group: GROUP.LOCALIZATION,
+      breadcrumb: [
+        { label: 'Localization', icon: 'fas fa-globe' },
+      ],
+    },
+  },
+  {
+    path: "/translations",
+    name: "translations",
+    component: Translations,
+    meta: {
+      group: GROUP.TRANSLATIONS,
+      breadcrumb: [
+        { label: 'Translations', icon: 'fas fa-language' },
+      ],
+    },
+  },
+  {
+    path: "/profile",
+    name: "profile",
+    component: Profile,
+    meta: {
+      group: GROUP.PROFILE,
+      breadcrumb: [
+        { label: 'Profile', icon: 'fa fa-user' },
+      ],
+    },
+  },
+  {
+    path: "/projects/",
+    name: "projects",
+    component: Projects,
+    meta: {
+      group: GROUP.PROJECTS,
+      breadcrumb: [
+        { label: 'Project List', icon: 'fas fa-list' },
+      ],
+    },
+  },
+
+  // ── Project routes ──────────────────────────────────────────────────
+
   {
     path: "/project/:project_id",
     name: "projects.index",
     redirect: to => ({ name: "projects.collections", params: { project_id: to.params.project_id } }),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin", "editor", "viewer"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin", "editor", "viewer"],
+    },
   },
   {
     path: "/project/:project_id/collections",
     name: "projects.collections",
     component: projectUiView('projects.collections'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.COLLECTIONS,
+      breadcrumb: [
+        { label: 'Collections', icon: 'fa fa-table' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/collections/:col_id/fields",
     name: "projects.collections.fields",
     component: projectUiView('projects.collections.fields'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.COLLECTIONS,
+      subkind: SUBKIND.FIELDS,
+      loadCollection: true,
+      breadcrumb: [
+        { label: 'Collections', route: 'projects.collections', icon: 'fa fa-table' },
+        { fromStore: { key: 'currentCollection', field: 'name' }, icon: 'fa fa-folder' },
+        { label: 'Fields', icon: 'fa fa-list' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/collections/:col_id/content",
     name: "projects.collections.content.list",
-    component: projectUiView('projects.collections.content.list', { collectionAware: true }),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin", "editor"],
-        }),
+    component: projectUiView('projects.collections.content.list'),
+    meta: {
+      projectRoles: ["owner", "admin", "editor"],
+      group: GROUP.COLLECTIONS,
+      subkind: SUBKIND.CONTENT,
+      collectAware: true,
+      breadcrumb: [
+        { label: 'Collections', route: 'projects.collections', icon: 'fa fa-table' },
+        { fromStore: { key: 'currentCollection', field: 'name' }, icon: 'fa fa-folder' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/collections/:col_id/content/new",
     name: "projects.collections.content.new",
-    component: projectUiView('projects.collections.content.new', { collectionAware: true }),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin", "editor"],
-        }),
+    component: projectUiView('projects.collections.content.new'),
+    meta: {
+      projectRoles: ["owner", "admin", "editor"],
+      group: GROUP.COLLECTIONS,
+      subkind: SUBKIND.CONTENT,
+      collectAware: true,
+      breadcrumb: [
+        { label: 'Collections', route: 'projects.collections', icon: 'fa fa-table' },
+        { fromStore: { key: 'currentCollection', field: 'name' }, icon: 'fa fa-folder' },
+        { label: 'Create Content', icon: 'fa fa-plus' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/collections/:col_id/content/:content_id/edit",
     name: "projects.collections.content.edit",
-    component: projectUiView('projects.collections.content.edit', { collectionAware: true }),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin", "editor"],
-        }),
+    component: projectUiView('projects.collections.content.edit'),
+    meta: {
+      projectRoles: ["owner", "admin", "editor"],
+      group: GROUP.COLLECTIONS,
+      subkind: SUBKIND.CONTENT,
+      collectAware: true,
+      breadcrumb: [
+        { label: 'Collections', route: 'projects.collections', icon: 'fa fa-table' },
+        { fromStore: { key: 'currentCollection', field: 'name' }, icon: 'fa fa-folder' },
+        { label: 'Edit Content', icon: 'fa fa-pen' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/collections/:col_id/content/forms",
     name: "projects.collections.content.forms",
     component: projectUiView('projects.collections.content.forms'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin", "editor"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin", "editor"],
+      group: GROUP.COLLECTIONS,
+      subkind: SUBKIND.CONTENT,
+      loadCollection: true,
+      breadcrumb: [
+        { label: 'Collections', route: 'projects.collections', icon: 'fa fa-table' },
+        { fromStore: { key: 'currentCollection', field: 'name' }, icon: 'fa fa-folder' },
+        { label: 'Forms', icon: 'fa fa-wpforms' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/collections/:col_id/content/forms/:form_id",
     name: "projects.collections.content.forms.detail",
     component: projectUiView('projects.collections.content.forms.detail'),
-    beforeEnter: async (to, from, next) =>
-      checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin", "editor"],
-      }),
+    meta: {
+      projectRoles: ["owner", "admin", "editor"],
+      group: GROUP.COLLECTIONS,
+      subkind: SUBKIND.CONTENT,
+      loadCollection: true,
+      breadcrumb: [
+        { label: 'Collections', route: 'projects.collections', icon: 'fa fa-table' },
+        { fromStore: { key: 'currentCollection', field: 'name' }, icon: 'fa fa-folder' },
+        { label: 'Forms', route: 'projects.collections.content.forms', icon: 'fa fa-wpforms' },
+        { dynamicKey: 'Form', icon: 'fa fa-file-alt' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings",
     name: "projects.settings",
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-            redirectTo: 'projects.settings.preferences',
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      projectRedirect: 'projects.settings.preferences',
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', icon: 'fa fa-cog' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/preferences",
     name: "projects.settings.preferences",
     component: projectUiView('projects.settings.preferences'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'Preferences' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/locales",
     name: "projects.settings.locales",
     component: projectUiView('projects.settings.locales'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'Localization' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/users",
     name: "projects.settings.users",
     component: projectUiView('projects.settings.users'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner"],
-        }),
+    meta: {
+      projectRoles: ["owner"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'Users & Roles' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/api",
     name: "projects.settings.api",
     component: projectUiView('projects.settings.api'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'API Access' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/webhooks",
     name: "projects.settings.webhooks",
     component: projectUiView('projects.settings.webhooks'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'Webhooks' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/translations",
     name: "projects.settings.translations",
     component: projectUiView('projects.settings.translations'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'Translations' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/language",
     name: "projects.settings.language",
     component: projectUiView('projects.settings.language'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'Language' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/webhooks/:webhook_id/logs",
     name: "projects.settings.webhooks.logs",
     component: projectUiView('projects.settings.webhooks.logs'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'Webhooks', route: 'projects.settings.webhooks' },
+        { label: 'Logs' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/audit-logs",
     name: "projects.settings.audit-logs",
     component: projectUiView('projects.settings.audit-logs'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'Audit Logs' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/settings/themes",
     name: "projects.settings.themes",
     component: () => import('./views/Project.Settings/Themes.vue'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin"],
+      group: GROUP.SETTINGS,
+      breadcrumb: [
+        { label: 'Settings', route: 'projects.settings', icon: 'fa fa-cog' },
+        { label: 'Themes' },
+      ],
+    },
   },
   {
     path: "/project/:project_id/media_library",
     name: "projects.media_library",
     component: projectUiView('projects.media_library'),
-    beforeEnter: async (to, from, next) =>
-        checkPermission(to, from, next, {
-            requiredProjectRoles: ["owner", "admin", "editor"],
-        }),
+    meta: {
+      projectRoles: ["owner", "admin", "editor"],
+      group: GROUP.MEDIA,
+      breadcrumb: [
+        { label: 'Media Library' },
+      ],
+    },
   },
 ];
 
@@ -347,6 +572,7 @@ router.afterEach(() => {
 });
 
 router.beforeEach(async (to, from, next) => {
+    // ── Close any lingering SweetAlert modal ──
     if (Swal.isVisible()) {
         await new Promise((resolve) => {
             Swal.close();
@@ -356,17 +582,20 @@ router.beforeEach(async (to, from, next) => {
 
     const store = useAdminStore();
     store.routeLoading = true;
-    const hasRoles = store.user.roles && store.user.roles.length > 0;
 
-    if (!hasRoles) {
+    // ── Ensure user roles are loaded ──
+    if (!store.user.roles || store.user.roles.length === 0) {
         await store.getUser();
     }
 
-    // Check if entering a project page
-    const isProjectPage = to.path.includes('/project/') && to.params.project_id;
-    const wasProjectPage = from && from.path && from.path.includes('/project/') && from.params && from.params.project_id;
+    // ── Project context loading (③) ──
+    // Must happen BEFORE permission check, because projectRoles relies on
+    // store.currentProject.my_role which is only available after the project
+    // data has been fetched.
+    const meta = to.meta || {};
+    const isProjectPage = !!to.params.project_id;
+    const wasProjectPage = from && from.params && from.params.project_id;
 
-    // If it's a project page, ensure project data is loaded
     if (isProjectPage) {
         const currentProjectId = store.currentProject?.id;
         const projectChanged = !currentProjectId || currentProjectId != to.params.project_id;
@@ -381,7 +610,8 @@ router.beforeEach(async (to, from, next) => {
             }
         }
 
-        if (to.params.col_id) {
+        // Load collection context when meta.collectAware is set
+        if ((meta.collectAware || meta.loadCollection) && to.params.col_id) {
             const currentCollectionId = store.currentCollection?.id;
             if (!currentCollectionId || currentCollectionId != to.params.col_id) {
                 await store.setCurrentCollection({
@@ -390,11 +620,35 @@ router.beforeEach(async (to, from, next) => {
                 });
             }
         } else {
+            // Explicitly clear stale collection context when navigating
+            // away from collection-aware routes
             store.currentCollection = null;
         }
     } else if (wasProjectPage && !isProjectPage) {
         store.setCurrentProject(null);
         store.currentCollection = null;
+    }
+
+    // ── Permission check (driven by route meta) ──
+    // Runs AFTER project context is loaded so that
+    // store.currentProject.my_role is available.
+    const roles = store.user.roles || [];
+
+    // super_admin bypasses all checks
+    if (!roles.includes('super_admin')) {
+        const projectRoles = meta.projectRoles;
+
+        if (projectRoles && projectRoles.length > 0) {
+            const myRole = store.currentProject && store.currentProject.my_role;
+            if (!projectRoles.includes(myRole)) {
+                return next('/');
+            }
+        }
+    }
+
+    // ── Handle project settings redirect (projects.settings → preferences) ──
+    if (meta.projectRedirect) {
+        return next({ name: meta.projectRedirect, params: { project_id: to.params.project_id } });
     }
 
     next();

@@ -10,7 +10,7 @@ import {
     loadCachedProjectDict,
     saveCachedProjectDict,
 } from './translations/engine';
-import themeEngine from './themeEngine';
+import themeEngine from './services/themeEngine';
 
 /**
  * Reveal the admin shell once the boot UI language has been applied.
@@ -57,7 +57,6 @@ export const useAdminStore = defineStore('admin', {
         currentTheme: null,
         routeLoading: false,
         currentProjectLoadedAt: 0,
-        topbarContent: null,
         columnSettings: [],
         uiLocale: BASE_LOCALE,
         uiBaseLocale: BASE_LOCALE,
@@ -299,12 +298,6 @@ export const useAdminStore = defineStore('admin', {
             if (found) {
                 found.columns = obj.columns;
             }
-        },
-        setTopbarContent(component) {
-            this.topbarContent = component;
-        },
-        clearTopbarContent() {
-            this.topbarContent = null;
         },
 
         /**

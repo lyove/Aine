@@ -3,8 +3,15 @@
  *
  * Theme packages: resources/js/admin/themes/{template}/{theme}/
  * Resolution priority: runtime (manifest.json) > default views
- * (the legacy config.js registration approach is deprecated and removed)
+ *
+ * Manifest key validation (④):
+ * When a theme is registered, each view_overrides key is checked against
+ * KNOWN_PROJECT_ROUTES. Unknown keys produce a console.warn so that
+ * typos or stale entries are caught during development instead of silently
+ * falling back to the default view.
  */
+
+import { COLLECTION_CONTENT_ROUTES, KNOWN_PROJECT_ROUTES } from './routes';
 
 // Default fallback views
 const defaultViews = {
@@ -46,6 +53,20 @@ export function registerTheme(slug, themeData) {
 
     if (themeData.view_overrides) {
         for (const [routeName, componentPath] of Object.entries(themeData.view_overrides)) {
+            // ── Validate manifest key (④) ──
+            const baseRoute = routeName.split('.')[0];
+            const dotParts = routeName.split('.');
+            // Accept known routes like "projects.settings.preferences" or
+            // collection-aware variants like "projects.collections.content.list.links"
+            const isKnown = KNOWN_PROJECT_ROUTES.includes(routeName)
+                || KNOWN_PROJECT_ROUTES.some(r => routeName.startsWith(r + '.'));
+            if (!isKnown) {
+                console.warn(
+                    `[viewRegistry] Theme "${slug}" has unknown view_overrides key: "${routeName}". ` +
+                    `Known project routes: ${KNOWN_PROJECT_ROUTES.join(', ')}`
+                );
+            }
+
             const globKey = `./${assetPath}/${componentPath.replace(/^\.\//, '')}`;
             if (themeModuleMap[globKey]) {
                 views[routeName] = themeModuleMap[globKey];
@@ -86,9 +107,13 @@ export function resolveView(routeName, uiSlug = null) {
 /**
  * Get the view loader for a content route (collection-aware).
  * Priority: per-collection > generic > default
+ *
+ * Only routes in COLLECTION_CONTENT_ROUTES accept collection-slug suffixes.
+ * If a non-collection-content route reaches here, it falls through to
+ * resolveView (no collection-aware resolution).
  */
 export function resolveContentView(routeName, uiSlug = null, collectionSlug = null) {
-    if (collectionSlug) {
+    if (collectionSlug && COLLECTION_CONTENT_ROUTES.includes(routeName)) {
         const collectionKey = `${routeName}.${collectionSlug}`;
 
         if (uiSlug && runtimeRegistry[uiSlug]?.views[collectionKey]) {
@@ -96,6 +121,13 @@ export function resolveContentView(routeName, uiSlug = null, collectionSlug = nu
         }
         if (uiSlug && runtimeRegistry[uiSlug]?.views[routeName]) {
             return runtimeRegistry[uiSlug].views[routeName];
+        }
+
+        // Theme has no override for this collection — log in dev
+        if (uiSlug && !runtimeRegistry[uiSlug]) {
+            console.warn(
+                `[viewRegistry] Theme "${uiSlug}" is not registered but was requested for route "${routeName}"`
+            );
         }
     }
     return resolveView(routeName, uiSlug);

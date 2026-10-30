@@ -9,9 +9,6 @@
         </div>
         <Breadcrumb :items="breadcrumbItems" />
 
-        <!-- The admin UI language follows the global default (Settings →
-             Localization → "Set as default"); the per-user language switcher
-             was removed. -->
         <div class="flex items-center gap-2">
             <a
                 :href="appUrl"
@@ -128,6 +125,7 @@
 import UiDropdown from '@/components/Dropdown.vue';
 import Breadcrumb from '@/admin/components/Breadcrumb.vue';
 import { useAdminStore } from '@/admin/store';
+import { useBreadcrumb } from '@/admin/composables/breadcrumb';
 
 export default {
     name: 'Topbar',
@@ -138,15 +136,13 @@ export default {
             unreadCount: 0,
         };
     },
+    setup() {
+        const breadcrumbItems = useBreadcrumb();
+        return { breadcrumbItems };
+    },
     computed: {
         appUrl() {
             return document.querySelector('meta[name="APP_URL"]')?.content || '/';
-        },
-        topbar() {
-            return useAdminStore().topbarContent;
-        },
-        breadcrumbItems() {
-            return (this.topbar && this.topbar.breadcrumb) || [];
         },
         user() {
             return useAdminStore().user || {};
@@ -154,7 +150,6 @@ export default {
         userName() {
             return this.user.name || this.__('User');
         },
-
     },
     methods: {
         fetchNotifications() {

@@ -75,7 +75,7 @@
                             }"
                             :class="[
                                 'flex-1 p-2 cursor-pointer hover:bg-gray-100 rounded truncate',
-                                isContentRoute(collection.id)
+                                isCollectionContentRoute(collection.id)
                                     ? 'bg-blue-50 text-blue-700 font-semibold'
                                     : 'text-gray-700',
                             ]"
@@ -92,7 +92,7 @@
                             :title="__('Edit fields')"
                             class="ml-1 p-2 rounded text-xs cursor-pointer transition-colors"
                             :class="
-                                isSchemaRoute(collection.id)
+                                isCollectionFieldsRoute(collection.id)
                                     ? 'text-indigo-500 bg-indigo-50 hover:bg-indigo-100'
                                     : 'text-gray-300 hover:text-indigo-500 hover:bg-gray-100'
                             "
@@ -224,19 +224,14 @@ export default {
             return Array.isArray(roles) && roles.includes(this.project && this.project.my_role);
         },
 
-        isContentRoute(collectionId) {
-            const name = this.$route.name;
-            const isContent = name === 'projects.collections.content.list'
-                || name === 'projects.collections.content.new'
-                || name === 'projects.collections.content.edit'
-                || name === 'projects.collections.content.forms'
-                || name === 'projects.collections.content.forms.detail';
-            return isContent && String(this.$route.params.col_id) === String(collectionId);
+        isCollectionContentRoute(collectionId) {
+            const meta = this.$route.meta || {};
+            return meta.subkind === 'content' && String(this.$route.params.col_id) === String(collectionId);
         },
 
-        isSchemaRoute(collectionId) {
-            return this.$route.name === 'projects.collections.fields'
-                && String(this.$route.params.col_id) === String(collectionId);
+        isCollectionFieldsRoute(collectionId) {
+            const meta = this.$route.meta || {};
+            return meta.subkind === 'fields' && String(this.$route.params.col_id) === String(collectionId);
         },
 
         addNewCollectionSubmit() {
