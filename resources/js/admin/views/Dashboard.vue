@@ -396,16 +396,6 @@
             },
         },
 
-        created() {
-            useAdminStore().setTopbarContent({
-                page: 'dashboard',
-                type: 'dashboard',
-                title: __('Dashboard'),
-                breadcrumb: [
-                    { name: 'Dashboard', url: '/', icon: 'fa fa-tachometer-alt' },
-                ],
-            });
-        },
 
         mounted() {
             this.getSettings();

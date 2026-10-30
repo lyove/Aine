@@ -165,17 +165,6 @@ export default {
             return this.strings.some((item) => this.placeholderError(item));
         },
     },
-    created() {
-        useAdminStore().setTopbarContent({
-            page: "translations",
-            type: "settings",
-            title: __("Translations"),
-            breadcrumb: [
-                { name: "Dashboard", url: "/", icon: "fa fa-tachometer-alt" },
-                { name: "Translations", icon: "fas fa-language" },
-            ],
-        });
-    },
     async mounted() {
         await useAdminStore().loadUiLocales();
         this.locale = useAdminStore().uiLocale || "en";

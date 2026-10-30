@@ -115,7 +115,6 @@ import { __ } from '@/admin/translations/engine';
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 import ContentFormsSidebar from "@/admin/components/ContentFormsSidebar.vue";
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 import { useAdminStore } from "@/admin/store";
 
 export default {
@@ -128,7 +127,6 @@ export default {
         ContentFormsSidebar,
     },
 
-    mixins: [projectBreadcrumb],
 
     computed: {
         isReadonly() {

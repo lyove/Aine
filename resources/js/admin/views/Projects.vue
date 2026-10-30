@@ -607,17 +607,6 @@ export default {
         },
     },
 
-    created() {
-        useAdminStore().setTopbarContent({ 
-            page: 'projects',
-            type: 'projectList', 
-            title: this.__('Project List'),
-            breadcrumb: [
-                { name: this.__('Dashboard'), url: '/', icon: 'fa fa-tachometer-alt' },
-                { name: this.__('Project List'), icon: 'fas fa-list' },
-            ],
-        });
-    },
 
     mounted() {
         this.getProjects();

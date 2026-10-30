@@ -267,7 +267,6 @@ import UiModal from "@/components/Modal.vue";
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import SettingsSidebar from "@/admin/components/SettingsSidebar.vue";
 import MediaLibrary from "@/admin/components/MediaLibrary.vue";
-import projectBreadcrumb from '@/admin/mixins/projectBreadcrumb';
 import { __ } from '@/admin/translations/engine';
 import { useAdminStore } from '@/admin/store';
 
@@ -281,7 +280,6 @@ function detectBrowserTimezone() {
 
 export default {
     components: { UiButton, UiModal, ProjectHeader, SettingsSidebar, MediaLibrary },
-    mixins: [projectBreadcrumb],
     data() {
         const p = useAdminStore().currentProject || {};
         return {

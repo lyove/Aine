@@ -190,7 +190,6 @@ import UiModal from "@/components/Modal.vue";
 
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import SettingsSidebar from "@/admin/components/SettingsSidebar.vue";
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 
 import { __ } from '@/admin/translations/engine';
 import { useAdminStore } from "@/admin/store";
@@ -203,7 +202,6 @@ export default {
         UiModal,
     },
 
-    mixins: [projectBreadcrumb],
 
     computed: {
     },

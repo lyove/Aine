@@ -523,16 +523,5 @@ export default {
         },
     },
 
-    created() {
-        useAdminStore().setTopbarContent({ 
-            page: 'profile',
-            type: 'profile',
-            title: __('Profile'),
-            breadcrumb: [
-                { name: 'Dashboard', url: '/', icon: 'fa fa-tachometer-alt' },
-                { name: 'Profile', icon: 'fa fa-user' },
-            ],
-        });
-    },
 };
 </script>

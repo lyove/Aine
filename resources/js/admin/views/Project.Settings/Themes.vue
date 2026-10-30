@@ -127,14 +127,12 @@
 import UiButton from '@/components/Button.vue';
 import ProjectHeader from '@/admin/components/ProjectHeader.vue';
 import SettingsSidebar from '@/admin/components/SettingsSidebar.vue';
-import projectBreadcrumb from '@/admin/mixins/projectBreadcrumb';
 import { __ } from '@/admin/translations/engine';
 import { useAdminStore } from '@/admin/store';
-import { fetchAvailableThemes } from '@/admin/themeEngine';
+import { fetchAvailableThemes } from '@/admin/services/themeEngine';
 
 export default {
     components: { UiButton, ProjectHeader, SettingsSidebar },
-    mixins: [projectBreadcrumb],
     data() {
         const store = useAdminStore();
         return {

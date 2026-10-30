@@ -44,7 +44,6 @@ import SettingsSidebar from "@/admin/components/SettingsSidebar.vue";
 import Locales from "./Locales.vue";
 import Translations from "./Translations.vue";
 
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 import { useAdminStore } from "@/admin/store";
 
 export default {
@@ -55,7 +54,6 @@ export default {
         Locales,
         Translations,
     },
-    mixins: [projectBreadcrumb],
     data() {
         return {
             tab: "locales",

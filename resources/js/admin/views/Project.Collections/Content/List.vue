@@ -760,7 +760,6 @@ import { useAdminStore } from "@/admin/store";
 
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 
 import UiTable from "@/components/Table";
 import UiModal from "@/components/Modal.vue";
@@ -1402,7 +1401,6 @@ export default {
     UiDropdown,
   },
 
-  mixins: [projectBreadcrumb],
 
   props: {
     relationSelect: {

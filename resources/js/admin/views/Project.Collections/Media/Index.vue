@@ -18,7 +18,6 @@
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import MediaLibrary from "@/admin/components/MediaLibrary.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 import { useAdminStore } from "@/admin/store";
 
 export default {
@@ -28,12 +27,9 @@ export default {
         MediaLibrary,
     },
 
-    mixins: [projectBreadcrumb],
 
     data() {
         return {
-            // Project data comes from the store — the router guard loads it
-            // before this page renders, so no extra request is needed.
             project: useAdminStore().currentProject || {},
         };
     },

@@ -17,12 +17,10 @@
 <script>
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import SettingsSidebar from "@/admin/components/SettingsSidebar.vue";
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 import { useAdminStore } from "@/admin/store";
 
 export default {
     components: { ProjectHeader, SettingsSidebar },
-    mixins: [projectBreadcrumb],
     data() {
         return {
             project: useAdminStore().currentProject || {},

@@ -631,17 +631,6 @@ export default {
         }
     },
 
-    created() {
-        useAdminStore().setTopbarContent({
-            page: 'settings',
-            type: 'settings',
-            title: this.__('Settings'),
-            breadcrumb: [
-                { name: 'Dashboard', url: '/', icon: 'fa fa-tachometer-alt' },
-                { name: 'Settings', icon: 'fa fa-cog' },
-            ],
-        });
-    },
 
     mounted() {
         this.getSettings();

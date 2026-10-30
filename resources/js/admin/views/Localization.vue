@@ -104,17 +104,6 @@ export default {
             localesOptions: LOCALES,
         };
     },
-    created() {
-        useAdminStore().setTopbarContent({
-            page: "localization",
-            type: "settings",
-            title: __("Localization"),
-            breadcrumb: [
-                { name: "Dashboard", url: "/", icon: "fa fa-tachometer-alt" },
-                { name: "Localization", icon: "fas fa-globe" },
-            ],
-        });
-    },
     async mounted() {
         await this.load();
     },

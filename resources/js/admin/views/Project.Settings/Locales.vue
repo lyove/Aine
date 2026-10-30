@@ -112,7 +112,6 @@ import localesJson from "@/locales.json";
 
 import { __ } from '@/admin/translations/engine';
 import { LOCALES, localeDisplayName } from "@/admin/utils/locales";
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 import { useAdminStore } from "@/admin/store";
 
 export default {
@@ -129,7 +128,6 @@ export default {
         SelectDropdown,
     },
 
-    mixins: [projectBreadcrumb],
 
     data() {
         const storeProject = useAdminStore().currentProject || {};
