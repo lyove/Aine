@@ -232,7 +232,7 @@ class ThemeService
 
         if ($project) {
             $query->where(function ($q) use ($project) {
-                $q->where('template_slug', $project->slug)
+                $q->where('template_slug', $project->template_slug)
                     ->orWhere('is_system', true);
             });
         }
@@ -266,7 +266,7 @@ class ThemeService
             return false;
         }
 
-        if (!$theme->is_system && $theme->template_slug !== $project->slug) {
+        if (!$theme->is_system && $theme->template_slug !== $project->template_slug) {
             return false;
         }
 

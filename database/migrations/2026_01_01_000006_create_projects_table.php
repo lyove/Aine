@@ -14,6 +14,7 @@ class CreateProjectsTable extends Migration
             $table->uuid('uuid')->unique();
             $table->string('name', 60);
             $table->string('slug', 60)->unique();
+            $table->string('template_slug')->nullable()->index();
             $table->string('description', 255)->nullable();
             $table->string('default_locale', 10)->default('en');
             $table->string('locales')->nullable();

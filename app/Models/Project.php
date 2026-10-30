@@ -18,7 +18,7 @@ class Project extends Model
 
     protected $fillable = [
         'owner_id', 
-        'name', 'slug', 'description', 
+        'name', 'slug', 'template_slug', 'description', 
         'default_locale', 'locales', 
         'disk', 'public_api', 'domain_whitelist', 
         'status', 'workflow_enabled',

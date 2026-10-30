@@ -137,6 +137,12 @@ class ProjectsController extends Controller
         $templateId = (int) $request->get('template_id');
         if ($templateId && $template = ProjectTemplates::get($templateId)) {
             ProjectTemplates::apply($project, $template);
+            
+            // Record which template this project is based on (for theme matching).
+            $templateSlug = \App\Aine\ProjectTemplates::SLUGS[$templateId] ?? null;
+            if ($templateSlug) {
+                $project->update(['template_slug' => $templateSlug]);
+            }
         }
 
         // New projects always start on the system default UI (sentinel theme);
