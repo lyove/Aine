@@ -11,7 +11,7 @@
  * falling back to the default view.
  */
 
-import { COLLECTION_CONTENT_ROUTES, KNOWN_PROJECT_ROUTES } from './routes';
+import { COLLECTION_CONTENT_ROUTES, KNOWN_PROJECT_ROUTES } from '../routes';
 
 // Default fallback views
 const defaultViews = {
