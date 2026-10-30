@@ -51,7 +51,6 @@
 import { useAdminStore } from '@/admin/store';
 import ProjectHeader from "@/admin/components/ProjectHeader.vue";
 import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 
 export default {
     components: {
@@ -59,7 +58,6 @@ export default {
         CollectionSidebar,
     },
 
-    mixins: [projectBreadcrumb],
 
     data() {
         return {

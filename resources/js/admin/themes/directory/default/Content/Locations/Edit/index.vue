@@ -765,7 +765,6 @@ import CollectionSidebar from "@/admin/components/CollectionSidebar.vue";
 import List from "../List.vue";
 
 import localesJson from "@/locales.json";
-import projectBreadcrumb from "@/admin/mixins/projectBreadcrumb";
 import { useAdminStore } from "@/admin/store";
 
 export default {
@@ -784,7 +783,6 @@ export default {
         RevisionsModal,
     },
 
-    mixins: [projectBreadcrumb],
 
     data() {
         return {
