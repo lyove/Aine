@@ -1,3 +1,8 @@
 {
-    "template": "directory"
+    "name": "Note Minimal",
+    "description": "Minimal lightweight variant of the Note theme",
+    "version": "1.0.0",
+    "author": "Aine",
+    "icon": "fa-sticky-note",
+    "template": "note"
 }

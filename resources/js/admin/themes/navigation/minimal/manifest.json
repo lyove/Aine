@@ -1,3 +1,8 @@
 {
-    "template": "directory"
+    "name": "Navigation Minimal",
+    "description": "Minimal lightweight variant of the Website Navigation theme",
+    "version": "1.0.0",
+    "author": "Aine",
+    "icon": "fa-compass",
+    "template": "navigation"
 }

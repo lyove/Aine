@@ -67,7 +67,7 @@ export function registerTheme(slug, themeData) {
                 );
             }
 
-            const globKey = `./${assetPath}/${componentPath.replace(/^\.\//, '')}`;
+            const globKey = `../${assetPath}/${componentPath.replace(/^\.\//, '')}`;
             if (themeModuleMap[globKey]) {
                 views[routeName] = themeModuleMap[globKey];
             } else {

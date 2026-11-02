@@ -27,7 +27,11 @@ class ThemesController extends Controller
 
         $themes = $this->themeService->getAvailableThemes($project);
 
-        if (empty($themes)) {
+        $hasPackageThemes = ProjectTheme::where('is_system', false)
+            ->where('is_active', true)
+            ->exists();
+
+        if (!$hasPackageThemes) {
             $this->themeService->discoverAndSync();
             $themes = $this->themeService->getAvailableThemes($project);
         }

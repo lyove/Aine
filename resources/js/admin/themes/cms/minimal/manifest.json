@@ -1,8 +1,8 @@
 {
-    "name": "CMS",
-    "description": "Content Management System theme with articles, pages, categories, and tags",
+    "name": "CMS Minimal",
+    "description": "Minimal lightweight variant of the CMS theme",
     "version": "1.0.0",
     "author": "Aine",
     "icon": "fa-newspaper",
-    "template": "minimal"
+    "template": "cms"
 }
