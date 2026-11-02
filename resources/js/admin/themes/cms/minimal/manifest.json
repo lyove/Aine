@@ -1,0 +1,8 @@
+{
+    "name": "CMS",
+    "description": "Content Management System theme with articles, pages, categories, and tags",
+    "version": "1.0.0",
+    "author": "Aine",
+    "icon": "fa-newspaper",
+    "template": "minimal"
+}

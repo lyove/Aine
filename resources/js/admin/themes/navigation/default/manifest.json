@@ -1,0 +1,30 @@
+{
+    "name": "Website Navigation",
+    "description": "网址导航主题 —— 前台展示配置：主色、渐变、卡片样式与布局开关，支持在后台主题设置中定制。",
+    "version": "1.0.0",
+    "author": "Aine",
+    "icon": "fa-compass",
+    "preview_image": null,
+    "design_tokens": {
+        "--theme-color-primary": "#4f46e5",
+        "--theme-color-primary-hover": "#4338ca",
+        "--theme-color-accent": "#7c3aed",
+        "--theme-hero-bg-start": "#6366f1",
+        "--theme-hero-bg-end": "#8b5cf6",
+        "--theme-radius-card": "1rem",
+        "--theme-font-family": "Inter, system-ui, sans-serif"
+    },
+    "view_overrides": {
+        "projects.index": "./Index/index.vue",
+        "projects.collections.content.list.links": "./Content/Links/List/index.vue",
+        "projects.collections.content.new.links": "./Content/Links/New/index.vue",
+        "projects.collections.content.edit.links": "./Content/Links/Edit/index.vue",
+        "projects.collections.content.list.categories": "./Content/Categories/List/index.vue",
+        "projects.collections.content.new.categories": "./Content/Categories/New/index.vue",
+        "projects.collections.content.edit.categories": "./Content/Categories/Edit/index.vue",
+        "projects.collections.content.list.tags": "./Content/Tags/List/index.vue",
+        "projects.collections.content.new.tags": "./Content/Tags/New/index.vue",
+        "projects.collections.content.edit.tags": "./Content/Tags/Edit/index.vue"
+    },
+    "template": "navigation"
+}
